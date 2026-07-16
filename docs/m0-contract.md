@@ -50,7 +50,9 @@ runs/m0/<run_id>/
 - 视觉边界标记为 `approximate`，ASR 边界标记为 `asr_timestamp`；
 - 时间必须满足 `0 <= start_ms < end_ms <= video_duration_ms`；
 - Chunk 偏移使用确定性纯函数计算，即使 M0 的偏移为 0 也必须通过测试；
-- Fixture 模式禁止读取密钥或发出网络请求，并对同一输入产生确定性输出。
+- Fixture 模式禁止读取密钥或发出网络请求，并对同一输入产生确定性输出；
+- 429、5xx 和临时网络错误最多重试 3 次并指数退避；
+- 每个 Live 阶段成功后立即原子落盘，后续失败时报告 `partial` 并保留已完成阶段。
 
 ## M0 不包含
 
@@ -82,7 +84,7 @@ runs/m0/<run_id>/
 - 标准化视觉事件：4；
 - 标准化 ASR 分句：6；
 - 统一证据：10；
-- 自动化测试：20 passed；
+- 自动化测试：24 passed；
 - Fixture 运行状态：`pass`；
 - 公网 ASR 音频：https://github.com/MaoDingA/ShotSeek/releases/download/m0-golden-audio-v1/golden.mp3；
 - Live 运行状态：公网音频已验证可下载，等待在项目目录内的 `.env` 配置 StepFun API Key 后验证。

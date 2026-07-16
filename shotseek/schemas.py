@@ -143,4 +143,5 @@ class RunReport(FrozenModel):
     models: dict[str, str]
     versions: dict[str, str]
     metrics: dict[str, int | float | bool]
+    completed_stages: list[str] = Field(default_factory=list)
     errors: list[str] = Field(default_factory=list)

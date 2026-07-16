@@ -10,6 +10,7 @@ import httpx
 from shotseek.schemas import VisualEvent
 
 from . import DEFAULT_BASE_URL, DEFAULT_VISION_MODEL
+from .http import request_with_retry
 
 VISION_PROMPT_VERSION = "m0-vision-v1"
 VISION_SCHEMA_VERSION = "visual-event-v1"
@@ -109,6 +110,8 @@ def analyze_video(
     base_url: str = DEFAULT_BASE_URL,
     timeout_s: float = 300.0,
     client: httpx.Client | None = None,
+    retry_attempts: int = 3,
+    retry_base_delay_s: float = 0.5,
 ) -> tuple[list[VisualEvent], dict[str, Any]]:
     """Call Chat Completions with one StepFun file-backed MP4."""
     if not file_uri.startswith(("stepfile://", "https://", "http://")):
@@ -130,12 +133,15 @@ def analyze_video(
     owns_client = client is None
     http = client or httpx.Client(timeout=httpx.Timeout(timeout_s))
     try:
-        response = http.post(
-            f"{base_url.rstrip('/')}/chat/completions",
-            headers=_headers(api_key),
-            json=request_body,
+        response = request_with_retry(
+            lambda: http.post(
+                f"{base_url.rstrip('/')}/chat/completions",
+                headers=_headers(api_key),
+                json=request_body,
+            ),
+            max_attempts=retry_attempts,
+            base_delay_s=retry_base_delay_s,
         )
-        response.raise_for_status()
         raw = response.json()
         return normalize_vision_response(raw, model=model), raw
     finally:

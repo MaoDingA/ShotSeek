@@ -12,6 +12,7 @@ import httpx
 from shotseek.schemas import UploadedFile
 
 from . import DEFAULT_BASE_URL
+from .http import request_with_retry
 
 MAX_STORAGE_BYTES = 128 * 1024 * 1024
 READY_STATUSES = {"success", "processed"}
@@ -39,6 +40,8 @@ def upload_video(
     timeout_s: float = 180.0,
     poll_interval_s: float = 2.0,
     client: httpx.Client | None = None,
+    retry_attempts: int = 3,
+    retry_base_delay_s: float = 0.5,
 ) -> tuple[UploadedFile, dict[str, Any]]:
     """Upload one MP4 using purpose=storage and wait until it is usable."""
     video_path = path.resolve()
@@ -55,14 +58,20 @@ def upload_video(
     owns_client = client is None
     http = client or httpx.Client(timeout=httpx.Timeout(timeout_s))
     try:
-        with video_path.open("rb") as handle:
-            response = http.post(
-                f"{base_url.rstrip('/')}/files",
-                headers=_headers(api_key),
-                data={"purpose": "storage"},
-                files={"file": (video_path.name, handle, "video/mp4")},
-            )
-        response.raise_for_status()
+        def send_upload() -> httpx.Response:
+            with video_path.open("rb") as handle:
+                return http.post(
+                    f"{base_url.rstrip('/')}/files",
+                    headers=_headers(api_key),
+                    data={"purpose": "storage"},
+                    files={"file": (video_path.name, handle, "video/mp4")},
+                )
+
+        response = request_with_retry(
+            send_upload,
+            max_attempts=retry_attempts,
+            base_delay_s=retry_base_delay_s,
+        )
         upload_raw = response.json()
         file_id = str(upload_raw.get("id", "")).strip()
         if not file_id:
@@ -74,11 +83,14 @@ def upload_video(
             if time.monotonic() >= deadline:
                 raise TimeoutError(f"StepFun file {file_id} was not ready before timeout")
             time.sleep(poll_interval_s)
-            status_response = http.get(
-                f"{base_url.rstrip('/')}/files/{file_id}",
-                headers=_headers(api_key),
+            status_response = request_with_retry(
+                lambda: http.get(
+                    f"{base_url.rstrip('/')}/files/{file_id}",
+                    headers=_headers(api_key),
+                ),
+                max_attempts=retry_attempts,
+                base_delay_s=retry_base_delay_s,
             )
-            status_response.raise_for_status()
             final_raw = status_response.json()
 
         uploaded = UploadedFile(

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from collections.abc import Callable
 from pathlib import PurePosixPath
 from typing import Any
 from urllib.parse import urlparse
@@ -12,6 +13,7 @@ import httpx
 from shotseek.schemas import Utterance, WordTimestamp
 
 from . import DEFAULT_ASR_MODEL, DEFAULT_BASE_URL
+from .http import request_with_retry
 
 
 def _headers(api_key: str) -> dict[str, str]:
@@ -47,6 +49,8 @@ def submit_asr(
     base_url: str = DEFAULT_BASE_URL,
     channel: int = 1,
     client: httpx.Client | None = None,
+    retry_attempts: int = 3,
+    retry_base_delay_s: float = 0.5,
 ) -> tuple[str, dict[str, Any]]:
     validate_public_audio_url(audio_url)
     if channel not in {1, 2}:
@@ -67,12 +71,15 @@ def submit_asr(
     owns_client = client is None
     http = client or httpx.Client(timeout=httpx.Timeout(60.0))
     try:
-        response = http.post(
-            f"{base_url.rstrip('/')}/audio/asr/file/submit",
-            headers=_headers(api_key),
-            json=request_body,
+        response = request_with_retry(
+            lambda: http.post(
+                f"{base_url.rstrip('/')}/audio/asr/file/submit",
+                headers=_headers(api_key),
+                json=request_body,
+            ),
+            max_attempts=retry_attempts,
+            base_delay_s=retry_base_delay_s,
         )
-        response.raise_for_status()
         raw = response.json()
         task_id = str(raw.get("task_id", "")).strip()
         if not task_id:
@@ -91,6 +98,8 @@ def wait_for_asr(
     poll_interval_s: float = 2.0,
     timeout_s: float = 600.0,
     client: httpx.Client | None = None,
+    retry_attempts: int = 3,
+    retry_base_delay_s: float = 0.5,
 ) -> dict[str, Any]:
     if not task_id.strip():
         raise ValueError("task_id is required")
@@ -99,12 +108,15 @@ def wait_for_asr(
     deadline = time.monotonic() + timeout_s
     try:
         while True:
-            response = http.post(
-                f"{base_url.rstrip('/')}/audio/asr/file/query",
-                headers=_headers(api_key),
-                json={"task_id": task_id},
+            response = request_with_retry(
+                lambda: http.post(
+                    f"{base_url.rstrip('/')}/audio/asr/file/query",
+                    headers=_headers(api_key),
+                    json={"task_id": task_id},
+                ),
+                max_attempts=retry_attempts,
+                base_delay_s=retry_base_delay_s,
             )
-            response.raise_for_status()
             raw = response.json()
             status = str(raw.get("status", "")).upper()
             if status == "RUNNING":
@@ -178,6 +190,10 @@ def run_asr(
     channel: int = 1,
     poll_interval_s: float = 2.0,
     timeout_s: float = 600.0,
+    retry_attempts: int = 3,
+    retry_base_delay_s: float = 0.5,
+    on_submit: Callable[[dict[str, Any]], None] | None = None,
+    on_result: Callable[[dict[str, Any]], None] | None = None,
 ) -> tuple[list[Utterance], dict[str, Any]]:
     with httpx.Client(timeout=httpx.Timeout(60.0)) as client:
         task_id, submit_raw = submit_asr(
@@ -187,7 +203,11 @@ def run_asr(
             base_url=base_url,
             channel=channel,
             client=client,
+            retry_attempts=retry_attempts,
+            retry_base_delay_s=retry_base_delay_s,
         )
+        if on_submit is not None:
+            on_submit(submit_raw)
         result_raw = wait_for_asr(
             task_id,
             api_key=api_key,
@@ -195,5 +215,9 @@ def run_asr(
             poll_interval_s=poll_interval_s,
             timeout_s=timeout_s,
             client=client,
+            retry_attempts=retry_attempts,
+            retry_base_delay_s=retry_base_delay_s,
         )
+        if on_result is not None:
+            on_result(result_raw)
     return normalize_asr_response(result_raw), {"submit": submit_raw, "result": result_raw}

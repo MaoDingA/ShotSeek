@@ -32,10 +32,12 @@ M0_SCHEMA_VERSION = "m0-schema-v1"
 
 def _json_dump(path: Path, value: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
+    temporary = path.with_name(f".{path.name}.tmp")
+    temporary.write_text(
         json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
+    temporary.replace(path)
 
 
 def _json_load(path: Path) -> Any:
@@ -173,8 +175,14 @@ def run_probe(
         "vision_ms": 0,
         "asr_ms": 0,
         "normalize_ms": 0,
+        "completed_stage_count": 0,
     }
     errors: list[str] = []
+    completed_stages: list[str] = []
+
+    def mark_stage(stage: str) -> None:
+        completed_stages.append(stage)
+        metrics["completed_stage_count"] = len(completed_stages)
 
     try:
         if mode == "fixture":
@@ -184,6 +192,18 @@ def run_probe(
             asr_raw = _json_load(fixture_dir / "asr_response.sample.json")
             visual_events = normalize_vision_response(vision_raw, model=vision_model)
             utterances = normalize_asr_response(asr_raw)
+            _json_dump(raw_dir / "stepfun_file.json", stepfun_file_raw)
+            _json_dump(raw_dir / "vision_response.json", vision_raw)
+            _json_dump(raw_dir / "asr_response.json", asr_raw)
+            _json_dump(
+                normalized_dir / "visual_events.json",
+                [event.model_dump(mode="json") for event in visual_events],
+            )
+            _json_dump(
+                normalized_dir / "utterances.json",
+                [utterance.model_dump(mode="json") for utterance in utterances],
+            )
+            mark_stage("fixture_loaded")
         else:
             if not api_key:
                 raise ValueError("STEPFUN_API_KEY is required in live mode")
@@ -197,6 +217,8 @@ def run_probe(
                 base_url=base_url,
             )
             metrics["upload_ms"] = round((time.perf_counter() - started) * 1000)
+            _json_dump(raw_dir / "stepfun_file.json", stepfun_file_raw)
+            mark_stage("upload")
 
             started = time.perf_counter()
             visual_events, vision_raw = analyze_video(
@@ -206,6 +228,23 @@ def run_probe(
                 base_url=base_url,
             )
             metrics["vision_ms"] = round((time.perf_counter() - started) * 1000)
+            metrics["visual_event_count"] = len(visual_events)
+            _json_dump(raw_dir / "vision_response.json", vision_raw)
+            _json_dump(
+                normalized_dir / "visual_events.json",
+                [event.model_dump(mode="json") for event in visual_events],
+            )
+            mark_stage("vision")
+
+            asr_partial: dict[str, Any] = {"submit": None, "result": None}
+
+            def save_asr_submit(submit_raw: dict[str, Any]) -> None:
+                asr_partial["submit"] = submit_raw
+                _json_dump(raw_dir / "asr_response.json", asr_partial)
+
+            def save_asr_result(result_raw: dict[str, Any]) -> None:
+                asr_partial["result"] = result_raw
+                _json_dump(raw_dir / "asr_response.json", asr_partial)
 
             started = time.perf_counter()
             utterances, asr_raw = run_asr(
@@ -214,20 +253,17 @@ def run_probe(
                 model=asr_model,
                 base_url=base_url,
                 channel=video.audio_channels or 1,
+                on_submit=save_asr_submit,
+                on_result=save_asr_result,
             )
             metrics["asr_ms"] = round((time.perf_counter() - started) * 1000)
-
-        _json_dump(raw_dir / "stepfun_file.json", stepfun_file_raw)
-        _json_dump(raw_dir / "vision_response.json", vision_raw)
-        _json_dump(raw_dir / "asr_response.json", asr_raw)
-        _json_dump(
-            normalized_dir / "visual_events.json",
-            [event.model_dump(mode="json") for event in visual_events],
-        )
-        _json_dump(
-            normalized_dir / "utterances.json",
-            [utterance.model_dump(mode="json") for utterance in utterances],
-        )
+            metrics["utterance_count"] = len(utterances)
+            _json_dump(raw_dir / "asr_response.json", asr_raw)
+            _json_dump(
+                normalized_dir / "utterances.json",
+                [utterance.model_dump(mode="json") for utterance in utterances],
+            )
+            mark_stage("asr")
 
         started = time.perf_counter()
         evidence = normalize_timeline(video.duration_ms, visual_events, utterances)
@@ -240,6 +276,7 @@ def run_probe(
             normalized_dir / "evidence_timeline.json",
             [item.model_dump(mode="json") for item in evidence],
         )
+        mark_stage("timeline")
         report = RunReport(
             run_id=run_id,
             mode=mode,
@@ -252,6 +289,7 @@ def run_probe(
             models=models,
             versions=versions,
             metrics=metrics,
+            completed_stages=completed_stages,
             errors=[],
         )
         _json_dump(run_dir / "run_report.json", report.model_dump(mode="json"))
@@ -261,7 +299,7 @@ def run_probe(
         report = RunReport(
             run_id=run_id,
             mode=mode,
-            status="failed",
+            status="partial" if completed_stages else "failed",
             video={
                 "sha256": video.sha256,
                 "duration_ms": video.duration_ms,
@@ -270,6 +308,7 @@ def run_probe(
             models=models,
             versions=versions,
             metrics=metrics,
+            completed_stages=completed_stages,
             errors=errors,
         )
         _json_dump(run_dir / "run_report.json", report.model_dump(mode="json"))
