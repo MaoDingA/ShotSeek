@@ -66,7 +66,7 @@ def normalize_timeline(
         global_start, global_end = apply_chunk_offset(
             event.approx_start_ms,
             event.approx_end_ms,
-            visual_source_start_ms,
+            visual_source_start_ms + event.source_start_ms,
         )
         bounded = _bounded_range(global_start, global_end, video_duration_ms)
         if bounded is None:

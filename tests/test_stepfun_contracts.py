@@ -96,13 +96,59 @@ def test_vision_api_uses_video_url_and_json_mode() -> None:
     assert isinstance(payload, dict)
     assert payload["stream"] is False
     assert payload["reasoning_effort"] == "low"
-    assert payload["max_tokens"] == 2048
+    assert payload["max_tokens"] == 4096
     assert payload["response_format"] == {"type": "json_object"}
     assert payload["messages"][0]["content"][0] == {
         "type": "video_url",
         "video_url": {"url": "stepfile://file_contract_fixture"},
     }
     assert events[0].approx_start_ms == 100
+
+
+def test_vision_retries_empty_structured_output_with_larger_budget() -> None:
+    payloads: list[dict[str, object]] = []
+    valid_content = {
+        "chunk_id": "chunk_006",
+        "events": [
+            {
+                "approx_start_ms": 100,
+                "approx_end_ms": 900,
+                "summary": "A person turns toward a monitor.",
+                "characters": ["person"],
+                "actions": ["turns"],
+                "objects": ["monitor"],
+                "location": "room",
+                "visible_text": [],
+                "confidence": 0.8,
+            }
+        ],
+    }
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        payloads.append(json.loads(request.read()))
+        content = "" if len(payloads) == 1 else json.dumps(valid_content)
+        return httpx.Response(
+            200,
+            json={"choices": [{"message": {"content": content}}]},
+        )
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        events, raw = analyze_video(
+            "https://example.invalid/chunk-006.mp4",
+            api_key="fixture-key",
+            model="step-3.7-flash",
+            base_url="https://api.example.invalid/step_plan/v1",
+            client=client,
+            chunk_id_override="chunk_006",
+            source_start_ms=60_000,
+        )
+
+    assert [payload["max_tokens"] for payload in payloads] == [4096, 8192]
+    assert raw["mode"] == "normalization_retry"
+    assert len(raw["attempts"]) == 2
+    assert events[0].event_id == "chunk_006:visual_0001"
+    assert events[0].chunk_id == "chunk_006"
+    assert events[0].source_start_ms == 60_000
 
 
 def test_asr_submit_and_poll_contract() -> None:

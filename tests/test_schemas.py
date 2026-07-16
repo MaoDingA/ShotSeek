@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from shotseek.schemas import Utterance, VisualEvent, WordTimestamp
+from shotseek.schemas import Utterance, VideoChunkInput, VisualEvent, WordTimestamp
 
 
 def visual_event(**overrides: object) -> VisualEvent:
@@ -54,4 +54,24 @@ def test_word_timestamp_outside_utterance_is_rejected() -> None:
             end_ms=2000,
             text="Hello",
             words=[WordTimestamp(text="Hello", start_ms=900, end_ms=1500)],
+        )
+
+
+def test_video_chunk_rejects_more_than_ten_seconds() -> None:
+    with pytest.raises(ValidationError, match="at most 10000 ms"):
+        VideoChunkInput(
+            chunk_id="chunk_000",
+            source_start_ms=0,
+            source_end_ms=10_001,
+            url="https://example.invalid/chunk-000.mp4",
+        )
+
+
+def test_video_chunk_rejects_non_http_url() -> None:
+    with pytest.raises(ValidationError, match="must use http"):
+        VideoChunkInput(
+            chunk_id="chunk_000",
+            source_start_ms=0,
+            source_end_ms=10_000,
+            url="stepfile://file_fixture",
         )

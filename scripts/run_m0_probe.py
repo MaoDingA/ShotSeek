@@ -31,6 +31,11 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--video", type=Path, required=True, help="MP4 path inside this repository")
     parser.add_argument("--audio-url", help="Public audio URL required by StepAudio file ASR")
+    parser.add_argument(
+        "--video-chunks",
+        type=Path,
+        help="Optional project-local JSON manifest of contiguous <=10s public video URLs",
+    )
     return parser.parse_args()
 
 
@@ -58,6 +63,11 @@ def main() -> int:
     args = parse_args()
     mode = "live" if args.live else "fixture"
     video = args.video if args.video.is_absolute() else PROJECT_ROOT / args.video
+    video_chunks = (
+        args.video_chunks
+        if args.video_chunks is None or args.video_chunks.is_absolute()
+        else PROJECT_ROOT / args.video_chunks
+    )
 
     if mode == "fixture":
         run_dir = run_probe(
@@ -76,6 +86,7 @@ def main() -> int:
             mode="live",
             api_key=api_key,
             audio_url=audio_url,
+            video_chunks_path=video_chunks,
             files_base_url=os.environ.get(
                 "STEPFUN_FILES_BASE_URL", DEFAULT_FILES_BASE_URL
             ),

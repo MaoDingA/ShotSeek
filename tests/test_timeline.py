@@ -78,3 +78,22 @@ def test_visual_chunk_source_offset_reaches_original_timeline() -> None:
     )
     assert evidence[0].start_ms == 122000
     assert evidence[0].end_ms == 125000
+
+
+def test_each_visual_event_can_carry_its_own_chunk_offset() -> None:
+    event = make_visual(start_ms=500, end_ms=1500).model_copy(
+        update={"source_start_ms": 20_000, "chunk_id": "chunk_002"}
+    )
+    evidence = normalize_timeline(30_000, [event], [])
+    assert evidence[0].start_ms == 20_500
+    assert evidence[0].end_ms == 21_500
+
+
+def test_event_offset_and_legacy_call_offset_are_additive() -> None:
+    event = make_visual(start_ms=500, end_ms=1500).model_copy(
+        update={"source_start_ms": 20_000}
+    )
+    evidence = normalize_timeline(
+        40_000, [event], [], visual_source_start_ms=10_000
+    )
+    assert evidence[0].start_ms == 30_500

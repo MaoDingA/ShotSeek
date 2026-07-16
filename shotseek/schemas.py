@@ -36,11 +36,34 @@ class VisualEvent(FrozenModel):
     source: str = "stepfun_vision"
     model: str = Field(min_length=1)
     chunk_id: str = "chunk_000"
+    source_start_ms: int = Field(default=0, ge=0)
 
     @model_validator(mode="after")
     def validate_time_range(self) -> "VisualEvent":
         if self.approx_end_ms <= self.approx_start_ms:
             raise ValueError("approx_end_ms must be greater than approx_start_ms")
+        return self
+
+
+class VideoChunkInput(FrozenModel):
+    chunk_id: str = Field(min_length=1)
+    source_start_ms: int = Field(ge=0)
+    source_end_ms: int = Field(gt=0)
+    url: str = Field(min_length=1)
+
+    @field_validator("url")
+    @classmethod
+    def validate_public_url(cls, value: str) -> str:
+        if not value.startswith(("https://", "http://")):
+            raise ValueError("video chunk URL must use http:// or https://")
+        return value
+
+    @model_validator(mode="after")
+    def validate_range(self) -> "VideoChunkInput":
+        if self.source_end_ms <= self.source_start_ms:
+            raise ValueError("source_end_ms must be greater than source_start_ms")
+        if self.source_end_ms - self.source_start_ms > 10_000:
+            raise ValueError("M0 video chunks must be at most 10000 ms")
         return self
 
 

@@ -35,6 +35,42 @@ def test_vision_response_accepts_fenced_json_and_local_time_aliases() -> None:
     assert events[0].event_id == "visual_0001"
 
 
+def test_vision_response_repairs_common_scalar_and_list_drift() -> None:
+    raw = {
+        "choices": [
+            {
+                "message": {
+                    "content": json.dumps(
+                        {
+                            "events": [
+                                {
+                                    "approx_start_ms": 0,
+                                    "approx_end_ms": 1000,
+                                    "summary": ["A person moves", "past a display"],
+                                    "characters": "person",
+                                    "actions": None,
+                                    "objects": "display",
+                                    "location": ["office", "hallway"],
+                                    "visible_text": "PLAYBACK",
+                                    "confidence": 0.75,
+                                }
+                            ]
+                        }
+                    )
+                }
+            }
+        ]
+    }
+
+    event = normalize_vision_response(raw, model="fixture-model")[0]
+    assert event.summary == "A person moves / past a display"
+    assert event.characters == ["person"]
+    assert event.actions == []
+    assert event.objects == ["display"]
+    assert event.location == "office / hallway"
+    assert event.visible_text == ["PLAYBACK"]
+
+
 def test_asr_response_preserves_speaker_and_words() -> None:
     raw = {
         "duration": 2.0,

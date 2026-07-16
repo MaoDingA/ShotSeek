@@ -77,6 +77,17 @@ cp .env.example .env
   --video samples/golden.mp4
 ```
 
+当标准 Files API 暂时没有额度时，也可以用项目目录内的 JSON 清单提供连续、完整覆盖原片的公网视频分片：
+
+```bash
+.venv/bin/python scripts/run_m0_probe.py \
+  --live \
+  --video samples/golden-stepfun.mp4 \
+  --video-chunks .tmp/m0-chunks/manifest.json
+```
+
+当前实测稳定分片上限取 10 秒。该入口会在运行清单中明确标记为 `direct_url_chunks`，不会伪装成 Files API 上传成功，也不能替代 M0 对 Files API 的正式验收。
+
 每次运行都会在 `runs/m0/<run_id>/` 中生成原始响应、标准化证据、统一时间线和运行报告；该目录不会提交到 Git。Live 调用对限流和临时服务错误进行有界重试，并在后续阶段失败时保留已完成阶段的真实响应。
 
 | M0 能力 | 状态 |
@@ -84,9 +95,9 @@ cp .env.example .env
 | 开放授权黄金样片 | 已完成 |
 | 毫秒时间线 Schema | 已完成 |
 | Files / 视频 / ASR 接口适配 | 已完成 |
-| 离线 Fixture 与契约测试 | 已完成，25 passed |
+| 离线 Fixture 与契约测试 | 已完成，33 passed |
 | 公网 ASR 黄金音频 | 已完成 |
 | StepFun 鉴权与基础能力验证 | 已完成 |
-| Step 3.7 原生视频 | 已通过：1 秒、2 秒 MP4，显式 `stream=false` |
+| Step 3.7 原生视频 | 已通过：1～10 秒稳定；75 秒样片按 8 段处理得到 23 个事件 |
 | M0 Live 硬门槛 | BLOCKED：当前账户的标准 Files/异步 ASR 额度及 ASR 毫秒时间戳尚未满足验收条件 |
 | shot-first 镜头校准 | 下一阶段 |
