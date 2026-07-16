@@ -67,13 +67,14 @@ python3 -m venv .venv
 .venv/bin/python -m pytest -q
 ```
 
-Live 模式需要 `STEPFUN_API_KEY` 和一个公网可访问的音频 URL：
+Live 模式需要在项目内复制 `.env.example` 为 `.env`，填入 `STEPFUN_API_KEY`。黄金样片音频已经作为带署名的公开 Release 资产提供：
 
 ```bash
+cp .env.example .env
+# 编辑 .env，填入 STEPFUN_API_KEY
 .venv/bin/python scripts/run_m0_probe.py \
   --live \
-  --video samples/golden.mp4 \
-  --audio-url "$GOLDEN_AUDIO_URL"
+  --video samples/golden.mp4
 ```
 
 每次运行都会在 `runs/m0/<run_id>/` 中生成原始响应、标准化证据、统一时间线和运行报告；该目录不会提交到 Git。
@@ -84,5 +85,6 @@ Live 模式需要 `STEPFUN_API_KEY` 和一个公网可访问的音频 URL：
 | 毫秒时间线 Schema | 已完成 |
 | Files / 视频 / ASR 接口适配 | 已完成 |
 | 离线 Fixture 与契约测试 | 已完成 |
-| StepFun Live 验证 | 等待本地 API Key |
+| 公网 ASR 黄金音频 | 已完成 |
+| StepFun Live 验证 | 等待在 `.env` 填入 API Key |
 | shot-first 镜头校准 | 下一阶段 |

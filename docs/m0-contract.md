@@ -84,4 +84,5 @@ runs/m0/<run_id>/
 - 统一证据：10；
 - 自动化测试：20 passed；
 - Fixture 运行状态：`pass`；
-- Live 运行状态：等待在项目目录内配置 StepFun API Key 后验证。
+- 公网 ASR 音频：https://github.com/MaoDingA/ShotSeek/releases/download/m0-golden-audio-v1/golden.mp3；
+- Live 运行状态：公网音频已验证可下载，等待在项目目录内的 `.env` 配置 StepFun API Key 后验证。

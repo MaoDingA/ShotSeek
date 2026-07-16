@@ -32,6 +32,26 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def load_project_env() -> None:
+    """Load simple KEY=VALUE entries from the ignored project .env file."""
+    env_path = PROJECT_ROOT / ".env"
+    if not env_path.is_file():
+        return
+    for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("export "):
+            line = line[7:].strip()
+        key, separator, value = line.partition("=")
+        if not separator or not key.strip():
+            continue
+        cleaned = value.strip()
+        if len(cleaned) >= 2 and cleaned[0] == cleaned[-1] and cleaned[0] in {"\"", "'"}:
+            cleaned = cleaned[1:-1]
+        os.environ.setdefault(key.strip(), cleaned)
+
+
 def main() -> int:
     args = parse_args()
     mode = "live" if args.live else "fixture"
@@ -44,6 +64,7 @@ def main() -> int:
             mode="fixture",
         )
     else:
+        load_project_env()
         api_key = os.environ.get("STEPFUN_API_KEY") or os.environ.get("STEP_API_KEY")
         audio_url = args.audio_url or os.environ.get("GOLDEN_AUDIO_URL")
         run_dir = run_probe(
