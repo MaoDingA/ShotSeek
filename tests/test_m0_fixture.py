@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import os
+import shutil
 from pathlib import Path
 
 import httpx
@@ -71,7 +73,10 @@ def test_live_failure_preserves_completed_upload_stage(monkeypatch: pytest.Monke
 
     monkeypatch.setattr("shotseek.m0.upload_video", fake_upload)
     monkeypatch.setattr("shotseek.m0.analyze_video", fail_vision)
-    before = set((PROJECT_ROOT / "runs" / "m0").iterdir())
+    run_id = f"test-vision-failure-{os.getpid()}"
+    run_dir = PROJECT_ROOT / "runs" / "m0" / run_id
+    shutil.rmtree(run_dir, ignore_errors=True)
+    monkeypatch.setattr("shotseek.m0._new_run_id", lambda: run_id)
     with pytest.raises(RuntimeError, match="simulated vision failure"):
         run_probe(
             project_root=PROJECT_ROOT,
@@ -80,15 +85,6 @@ def test_live_failure_preserves_completed_upload_stage(monkeypatch: pytest.Monke
             api_key="fixture-key",
             audio_url="https://example.invalid/golden.mp3",
         )
-    created = set((PROJECT_ROOT / "runs" / "m0").iterdir()) - before
-    matching = [
-        candidate
-        for candidate in created
-        if "simulated vision failure"
-        in (candidate / "run_report.json").read_text(encoding="utf-8")
-    ]
-    assert len(matching) == 1
-    run_dir = matching[0]
     report = json.loads((run_dir / "run_report.json").read_text(encoding="utf-8"))
     assert report["status"] == "partial"
     assert report["completed_stages"] == ["upload"]
@@ -192,7 +188,7 @@ def test_direct_video_chunks_skip_files_and_preserve_source_offsets(
         pytest.skip("run scripts/prepare_golden_sample.py to enable the direct URL test")
 
     duration_ms = probe_video(PROJECT_ROOT, GOLDEN_VIDEO).duration_ms
-    manifest_path = PROJECT_ROOT / ".tmp" / "direct-video-chunks-test.json"
+    manifest_path = PROJECT_ROOT / ".tmp" / f"direct-video-chunks-test-{os.getpid()}.json"
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     chunks: list[dict[str, object]] = []
     start_ms = 0
@@ -354,7 +350,10 @@ def test_live_asr_http_failure_is_preserved_as_a_raw_artifact(
     monkeypatch.setattr("shotseek.m0.upload_video", fake_upload)
     monkeypatch.setattr("shotseek.m0.analyze_video", fake_vision)
     monkeypatch.setattr("shotseek.m0.run_asr", fail_asr)
-    before = set((PROJECT_ROOT / "runs" / "m0").iterdir())
+    run_id = f"test-asr-failure-{os.getpid()}"
+    run_dir = PROJECT_ROOT / "runs" / "m0" / run_id
+    shutil.rmtree(run_dir, ignore_errors=True)
+    monkeypatch.setattr("shotseek.m0._new_run_id", lambda: run_id)
     with pytest.raises(httpx.HTTPStatusError):
         run_probe(
             project_root=PROJECT_ROOT,
@@ -363,16 +362,6 @@ def test_live_asr_http_failure_is_preserved_as_a_raw_artifact(
             api_key="fixture-key",
             audio_url="https://example.invalid/golden.mp3",
         )
-    created = set((PROJECT_ROOT / "runs" / "m0").iterdir()) - before
-    matching = [
-        candidate
-        for candidate in created
-        if (candidate / "raw" / "asr_response.json").is_file()
-        and "quota exceeded"
-        in (candidate / "raw" / "asr_response.json").read_text(encoding="utf-8")
-    ]
-    assert len(matching) == 1
-    run_dir = matching[0]
     report = json.loads((run_dir / "run_report.json").read_text(encoding="utf-8"))
     raw_asr = json.loads(
         (run_dir / "raw" / "asr_response.json").read_text(encoding="utf-8")

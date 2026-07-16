@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 from pathlib import Path
 
@@ -20,7 +21,8 @@ def dump(path: Path, value: object) -> None:
 
 
 def make_run(*, speaker_id: str | None) -> Path:
-    run_id = "m0-verify-complete" if speaker_id else "m0-verify-partial"
+    profile = "complete" if speaker_id else "partial"
+    run_id = f"m0-verify-{profile}-{os.getpid()}"
     run_dir = PROJECT_ROOT / ".tmp" / run_id
     shutil.rmtree(run_dir, ignore_errors=True)
     visual = VisualEvent(
