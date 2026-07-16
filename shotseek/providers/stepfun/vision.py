@@ -127,6 +127,9 @@ def analyze_video(
                 ],
             }
         ],
+        "stream": False,
+        "reasoning_effort": "low",
+        "max_tokens": 2048,
         "response_format": {"type": "json_object"},
         "temperature": 0,
     }

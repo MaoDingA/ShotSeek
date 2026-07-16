@@ -94,6 +94,9 @@ def test_vision_api_uses_video_url_and_json_mode() -> None:
         )
     payload = seen["payload"]
     assert isinstance(payload, dict)
+    assert payload["stream"] is False
+    assert payload["reasoning_effort"] == "low"
+    assert payload["max_tokens"] == 2048
     assert payload["response_format"] == {"type": "json_object"}
     assert payload["messages"][0]["content"][0] == {
         "type": "video_url",

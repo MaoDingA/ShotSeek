@@ -87,5 +87,6 @@ cp .env.example .env
 | 离线 Fixture 与契约测试 | 已完成，25 passed |
 | 公网 ASR 黄金音频 | 已完成 |
 | StepFun 鉴权与基础能力验证 | 已完成 |
-| M0 Live 硬门槛 | BLOCKED：当前账户的标准 Files/异步 ASR 额度与原生视频服务尚未满足验收条件 |
+| Step 3.7 原生视频 | 已通过：1 秒、2 秒 MP4，显式 `stream=false` |
+| M0 Live 硬门槛 | BLOCKED：当前账户的标准 Files/异步 ASR 额度及 ASR 毫秒时间戳尚未满足验收条件 |
 | shot-first 镜头校准 | 下一阶段 |
