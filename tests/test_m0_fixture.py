@@ -297,6 +297,90 @@ def test_direct_video_chunks_skip_files_and_preserve_source_offsets(
     assert visual_starts[-1] == int(chunks[-1]["source_start_ms"]) + 100
 
 
+def test_cached_vision_can_require_a_fresh_files_upload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    if not GOLDEN_VIDEO.exists():
+        pytest.skip("run scripts/prepare_golden_sample.py to enable the cache upload test")
+
+    def fake_cached_vision(*args: object, **kwargs: object):
+        return (
+            [VisualEvent(
+                event_id="visual_cached_fixture",
+                approx_start_ms=100,
+                approx_end_ms=500,
+                summary="A person crosses the frame.",
+                confidence=0.8,
+                model="step-3.7-flash",
+            )],
+            {"choices": [{"message": {"content": "fixture"}}]},
+            {"mode": "direct_url_chunks", "files_api_used": False, "chunks": []},
+        )
+
+    def fake_upload(*args: object, **kwargs: object):
+        return (
+            UploadedFile(
+                file_id="file_fresh_fixture",
+                file_uri="stepfile://file_fresh_fixture",
+                filename="golden.mp4",
+                bytes=GOLDEN_VIDEO.stat().st_size,
+                sha256="a" * 64,
+                status="processed",
+            ),
+            {
+                "upload": {"id": "file_fresh_fixture"},
+                "final": {"id": "file_fresh_fixture", "status": "processed"},
+            },
+        )
+
+    def fake_asr(*args: object, **kwargs: object):
+        return (
+            [Utterance(
+                utterance_id="utterance_cached_fixture",
+                start_ms=600,
+                end_ms=900,
+                text="Hello",
+                speaker_id="spk_1",
+            )],
+            {"submit": {"task_id": "fixture"}, "result": {"result": []}},
+        )
+
+    def fail_vision(*args: object, **kwargs: object) -> None:
+        raise AssertionError("cached vision should not be analyzed again")
+
+    monkeypatch.setattr("shotseek.m0.load_cached_vision", fake_cached_vision)
+    monkeypatch.setattr("shotseek.m0.upload_video", fake_upload)
+    monkeypatch.setattr("shotseek.m0.analyze_video", fail_vision)
+    monkeypatch.setattr("shotseek.m0.run_asr", fake_asr)
+
+    run_dir = run_probe(
+        project_root=PROJECT_ROOT,
+        video_path=GOLDEN_VIDEO,
+        mode="live",
+        api_key="fixture-key",
+        audio_url="https://example.invalid/golden.mp3",
+        vision_cache_run=PROJECT_ROOT / ".tmp" / "cached-live-run",
+        require_files_upload=True,
+    )
+
+    report = json.loads((run_dir / "run_report.json").read_text(encoding="utf-8"))
+    manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
+    file_raw = json.loads(
+        (run_dir / "raw" / "stepfun_file.json").read_text(encoding="utf-8")
+    )
+    assert report["status"] == "pass"
+    assert report["completed_stages"] == [
+        "vision_cache", "upload", "vision", "asr", "timeline"
+    ]
+    assert report["cache"] == {
+        "file_hit": False, "vision_hit": True, "asr_hit": False
+    }
+    assert manifest["inputs"]["video_delivery"] == "files_api_plus_vision_cache"
+    assert manifest["inputs"]["files_upload_required"] is True
+    assert file_raw["final"]["id"] == "file_fresh_fixture"
+    assert all(report["gates"].values())
+
+
 def test_live_asr_http_failure_is_preserved_as_a_raw_artifact(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

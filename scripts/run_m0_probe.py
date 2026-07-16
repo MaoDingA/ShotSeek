@@ -43,6 +43,13 @@ def parse_args() -> argparse.Namespace:
         help="Optional project-local live run whose visual evidence matches --video",
     )
     parser.add_argument(
+        "--require-files-upload",
+        action="store_true",
+        help=(
+            "Perform a fresh standard Files API upload even when using video chunks or a vision cache"
+        ),
+    )
+    parser.add_argument(
         "--asr-transport",
         choices=("async_file", "sse"),
         default="async_file",
@@ -105,6 +112,7 @@ def main() -> int:
             audio_url=audio_url,
             video_chunks_path=video_chunks,
             vision_cache_run=vision_cache_run,
+            require_files_upload=args.require_files_upload,
             asr_transport=args.asr_transport,
             files_base_url=os.environ.get(
                 "STEPFUN_FILES_BASE_URL", DEFAULT_FILES_BASE_URL

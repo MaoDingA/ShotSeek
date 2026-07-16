@@ -209,6 +209,7 @@ def run_probe(
     audio_url: str | None = None,
     video_chunks_path: Path | None = None,
     vision_cache_run: Path | None = None,
+    require_files_upload: bool = False,
     asr_transport: str = "async_file",
     files_base_url: str = DEFAULT_FILES_BASE_URL,
     chat_base_url: str = DEFAULT_CHAT_BASE_URL,
@@ -225,6 +226,8 @@ def run_probe(
         raise ValueError("fixture mode does not accept a video chunk manifest")
     if mode == "fixture" and vision_cache_run is not None:
         raise ValueError("fixture mode does not accept a live vision cache")
+    if mode == "fixture" and require_files_upload:
+        raise ValueError("fixture mode cannot require a Files API upload")
     if video_chunks_path is not None and vision_cache_run is not None:
         raise ValueError("choose either video chunks or a vision cache run, not both")
     if asr_transport not in {"async_file", "sse"}:
@@ -276,10 +279,20 @@ def run_probe(
                 "fixture"
                 if mode == "fixture"
                 else (
-                    "vision_cache"
+                    (
+                        "files_api_plus_vision_cache"
+                        if require_files_upload
+                        else "vision_cache"
+                    )
                     if vision_cache_run is not None
                     else (
-                        "direct_url_chunks" if video_chunks is not None else "files_api"
+                        (
+                            "files_api_plus_direct_url_chunks"
+                            if require_files_upload
+                            else "direct_url_chunks"
+                        )
+                        if video_chunks is not None
+                        else "files_api"
                     )
                 )
             ),
@@ -296,6 +309,7 @@ def run_probe(
                 else None
             ),
             "asr_transport": asr_transport,
+            "files_upload_required": require_files_upload,
             "fixture_profile": fixture_profile,
         },
     )
@@ -313,7 +327,8 @@ def run_probe(
     errors: list[str] = []
     completed_stages: list[str] = []
     cache = {
-        "file_hit": mode == "fixture" or vision_cache_run is not None,
+        "file_hit": mode == "fixture"
+        or (vision_cache_run is not None and not require_files_upload),
         "vision_hit": mode == "fixture" or vision_cache_run is not None,
         "asr_hit": mode == "fixture",
     }
@@ -366,12 +381,14 @@ def run_probe(
 
             vision_cached = vision_cache_run is not None
             if vision_cache_run is not None:
-                visual_events, vision_raw, stepfun_file_raw = load_cached_vision(
+                visual_events, vision_raw, cached_stepfun_file_raw = load_cached_vision(
                     root,
                     vision_cache_run,
                     video,
                 )
-                _json_dump(raw_dir / "stepfun_file.json", stepfun_file_raw)
+                stepfun_file_raw = cached_stepfun_file_raw
+                if not require_files_upload:
+                    _json_dump(raw_dir / "stepfun_file.json", stepfun_file_raw)
                 _json_dump(raw_dir / "vision_response.json", vision_raw)
                 _json_dump(
                     normalized_dir / "visual_events.json",
@@ -380,9 +397,7 @@ def run_probe(
                 metrics["visual_event_count"] = len(visual_events)
                 mark_stage("vision_cache")
 
-            if vision_cached:
-                pass
-            elif video_chunks is None:
+            if require_files_upload or (not vision_cached and video_chunks is None):
                 started = time.perf_counter()
                 try:
                     uploaded, stepfun_file_raw = upload_video(
@@ -396,6 +411,8 @@ def run_probe(
                     )
                 _json_dump(raw_dir / "stepfun_file.json", stepfun_file_raw)
                 mark_stage("upload")
+            elif vision_cached:
+                pass
             else:
                 stepfun_file_raw = {
                     "mode": "direct_url_chunks",
