@@ -11,7 +11,7 @@ import httpx
 
 from shotseek.schemas import UploadedFile
 
-from . import DEFAULT_BASE_URL
+from . import DEFAULT_FILES_BASE_URL
 from .http import request_with_retry
 
 MAX_STORAGE_BYTES = 128 * 1024 * 1024
@@ -36,7 +36,7 @@ def upload_video(
     path: Path,
     *,
     api_key: str,
-    base_url: str = DEFAULT_BASE_URL,
+    base_url: str = DEFAULT_FILES_BASE_URL,
     timeout_s: float = 180.0,
     poll_interval_s: float = 2.0,
     client: httpx.Client | None = None,

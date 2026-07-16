@@ -11,8 +11,10 @@ from pathlib import Path
 from typing import Any
 
 from shotseek.providers.stepfun import (
+    DEFAULT_ASR_BASE_URL,
     DEFAULT_ASR_MODEL,
-    DEFAULT_BASE_URL,
+    DEFAULT_CHAT_BASE_URL,
+    DEFAULT_FILES_BASE_URL,
     DEFAULT_VISION_MODEL,
 )
 from shotseek.providers.stepfun.asr import normalize_asr_response, run_asr
@@ -134,7 +136,9 @@ def run_probe(
     mode: str,
     api_key: str | None = None,
     audio_url: str | None = None,
-    base_url: str = DEFAULT_BASE_URL,
+    files_base_url: str = DEFAULT_FILES_BASE_URL,
+    chat_base_url: str = DEFAULT_CHAT_BASE_URL,
+    asr_base_url: str = DEFAULT_ASR_BASE_URL,
     vision_model: str = DEFAULT_VISION_MODEL,
     asr_model: str = DEFAULT_ASR_MODEL,
 ) -> Path:
@@ -211,23 +215,27 @@ def run_probe(
                 raise ValueError("--audio-url or GOLDEN_AUDIO_URL is required in live mode")
 
             started = time.perf_counter()
-            uploaded, stepfun_file_raw = upload_video(
-                root / video.path,
-                api_key=api_key,
-                base_url=base_url,
-            )
-            metrics["upload_ms"] = round((time.perf_counter() - started) * 1000)
+            try:
+                uploaded, stepfun_file_raw = upload_video(
+                    root / video.path,
+                    api_key=api_key,
+                    base_url=files_base_url,
+                )
+            finally:
+                metrics["upload_ms"] = round((time.perf_counter() - started) * 1000)
             _json_dump(raw_dir / "stepfun_file.json", stepfun_file_raw)
             mark_stage("upload")
 
             started = time.perf_counter()
-            visual_events, vision_raw = analyze_video(
-                uploaded.file_uri,
-                api_key=api_key,
-                model=vision_model,
-                base_url=base_url,
-            )
-            metrics["vision_ms"] = round((time.perf_counter() - started) * 1000)
+            try:
+                visual_events, vision_raw = analyze_video(
+                    uploaded.file_uri,
+                    api_key=api_key,
+                    model=vision_model,
+                    base_url=chat_base_url,
+                )
+            finally:
+                metrics["vision_ms"] = round((time.perf_counter() - started) * 1000)
             metrics["visual_event_count"] = len(visual_events)
             _json_dump(raw_dir / "vision_response.json", vision_raw)
             _json_dump(
@@ -247,16 +255,18 @@ def run_probe(
                 _json_dump(raw_dir / "asr_response.json", asr_partial)
 
             started = time.perf_counter()
-            utterances, asr_raw = run_asr(
-                audio_url,
-                api_key=api_key,
-                model=asr_model,
-                base_url=base_url,
-                channel=video.audio_channels or 1,
-                on_submit=save_asr_submit,
-                on_result=save_asr_result,
-            )
-            metrics["asr_ms"] = round((time.perf_counter() - started) * 1000)
+            try:
+                utterances, asr_raw = run_asr(
+                    audio_url,
+                    api_key=api_key,
+                    model=asr_model,
+                    base_url=asr_base_url,
+                    channel=video.audio_channels or 1,
+                    on_submit=save_asr_submit,
+                    on_result=save_asr_result,
+                )
+            finally:
+                metrics["asr_ms"] = round((time.perf_counter() - started) * 1000)
             metrics["utterance_count"] = len(utterances)
             _json_dump(raw_dir / "asr_response.json", asr_raw)
             _json_dump(

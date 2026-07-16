@@ -84,7 +84,8 @@ cp .env.example .env
 | 开放授权黄金样片 | 已完成 |
 | 毫秒时间线 Schema | 已完成 |
 | Files / 视频 / ASR 接口适配 | 已完成 |
-| 离线 Fixture 与契约测试 | 已完成 |
+| 离线 Fixture 与契约测试 | 已完成，25 passed |
 | 公网 ASR 黄金音频 | 已完成 |
-| StepFun Live 验证 | 等待在 `.env` 填入 API Key |
+| StepFun 鉴权与基础能力验证 | 已完成 |
+| M0 Live 硬门槛 | BLOCKED：当前账户的标准 Files/异步 ASR 额度与原生视频服务尚未满足验收条件 |
 | shot-first 镜头校准 | 下一阶段 |

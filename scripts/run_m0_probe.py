@@ -14,8 +14,10 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from shotseek.m0 import run_probe
 from shotseek.providers.stepfun import (
+    DEFAULT_ASR_BASE_URL,
     DEFAULT_ASR_MODEL,
-    DEFAULT_BASE_URL,
+    DEFAULT_CHAT_BASE_URL,
+    DEFAULT_FILES_BASE_URL,
     DEFAULT_VISION_MODEL,
 )
 
@@ -67,13 +69,22 @@ def main() -> int:
         load_project_env()
         api_key = os.environ.get("STEPFUN_API_KEY") or os.environ.get("STEP_API_KEY")
         audio_url = args.audio_url or os.environ.get("GOLDEN_AUDIO_URL")
+        legacy_base_url = os.environ.get("STEPFUN_BASE_URL")
         run_dir = run_probe(
             project_root=PROJECT_ROOT,
             video_path=video,
             mode="live",
             api_key=api_key,
             audio_url=audio_url,
-            base_url=os.environ.get("STEPFUN_BASE_URL", DEFAULT_BASE_URL),
+            files_base_url=os.environ.get(
+                "STEPFUN_FILES_BASE_URL", DEFAULT_FILES_BASE_URL
+            ),
+            chat_base_url=os.environ.get(
+                "STEPFUN_CHAT_BASE_URL", legacy_base_url or DEFAULT_CHAT_BASE_URL
+            ),
+            asr_base_url=os.environ.get(
+                "STEPFUN_ASR_BASE_URL", DEFAULT_ASR_BASE_URL
+            ),
             vision_model=os.environ.get("STEPFUN_VISION_MODEL", DEFAULT_VISION_MODEL),
             asr_model=os.environ.get("STEPFUN_ASR_MODEL", DEFAULT_ASR_MODEL),
         )

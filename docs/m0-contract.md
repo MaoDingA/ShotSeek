@@ -42,6 +42,16 @@ runs/m0/<run_id>/
 
 所有运行产物位于仓库目录内的 `runs/`，并由 Git 忽略。模型原始响应与标准化事实严格分离。
 
+## 接口通道
+
+M0 显式区分三条接口通道，不能用一个 Base URL 覆盖全部服务：
+
+- Files API：`https://api.stepfun.com/v1`；
+- Chat Completions：`https://api.stepfun.com/step_plan/v1`；
+- 异步文件 ASR：`https://api.stepfun.com/v1`。
+
+对应环境变量为 `STEPFUN_FILES_BASE_URL`、`STEPFUN_CHAT_BASE_URL` 和 `STEPFUN_ASR_BASE_URL`。
+
 ## 冻结契约
 
 - 视觉时间使用 `approx_start_ms/approx_end_ms`，不得伪装成最终镜头边界；
@@ -84,7 +94,25 @@ runs/m0/<run_id>/
 - 标准化视觉事件：4；
 - 标准化 ASR 分句：6；
 - 统一证据：10；
-- 自动化测试：24 passed；
+- 自动化测试：25 passed；
 - Fixture 运行状态：`pass`；
 - 公网 ASR 音频：https://github.com/MaoDingA/ShotSeek/releases/download/m0-golden-audio-v1/golden.mp3；
-- Live 运行状态：公网音频已验证可下载，等待在项目目录内的 `.env` 配置 StepFun API Key 后验证。
+
+### Live 能力诊断（2026-07-16）
+
+当前密钥已完成脱敏实测，结论如下：
+
+| 能力 | 结果 | 判定 |
+| --- | --- | --- |
+| Step Plan 文本与 JSON Mode | HTTP 200 | 通过 |
+| `step-3.7-flash` 图片输入 | HTTP 200 | 通过 |
+| `step-3.7-flash` 原生视频输入 | HTTP 500 `engine_exception` | BLOCKED |
+| Step Plan SSE ASR 转写 | HTTP 200，可返回文本 | 仅基础能力通过 |
+| SSE ASR 分句时间戳 | `start_time/end_time` 均为 0 | 不通过 |
+| SSE ASR 说话人 | 无说话人字段 | 不通过 |
+| 标准 Files API | HTTP 402 quota exceeded | BLOCKED |
+| 标准异步文件 ASR | HTTP 402 quota exceeded | BLOCKED |
+
+视频输入已分别使用 75 秒和 5 秒 H.264/AAC（或无音频）MP4 测试，并验证了公网直链、`video/mp4`、`faststart`、`Range: bytes` 和 206 响应，结果仍为服务端 `engine_exception`。因此当前 M0 Live 状态必须保持 **BLOCKED**，不能用 SSE 零时间戳或本地推导时间窗伪装成硬门槛通过。
+
+解除阻塞需要：标准开放平台 Files/异步文件 ASR 可用额度，以及 StepFun 原生视频服务恢复或官方确认可用调用方式。解除后重新运行原始 `--live` 命令即可，工程无需再混用 Base URL。

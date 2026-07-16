@@ -12,7 +12,7 @@ import httpx
 
 from shotseek.schemas import Utterance, WordTimestamp
 
-from . import DEFAULT_ASR_MODEL, DEFAULT_BASE_URL
+from . import DEFAULT_ASR_BASE_URL, DEFAULT_ASR_MODEL
 from .http import request_with_retry
 
 
@@ -46,7 +46,7 @@ def submit_asr(
     *,
     api_key: str,
     model: str = DEFAULT_ASR_MODEL,
-    base_url: str = DEFAULT_BASE_URL,
+    base_url: str = DEFAULT_ASR_BASE_URL,
     channel: int = 1,
     client: httpx.Client | None = None,
     retry_attempts: int = 3,
@@ -94,7 +94,7 @@ def wait_for_asr(
     task_id: str,
     *,
     api_key: str,
-    base_url: str = DEFAULT_BASE_URL,
+    base_url: str = DEFAULT_ASR_BASE_URL,
     poll_interval_s: float = 2.0,
     timeout_s: float = 600.0,
     client: httpx.Client | None = None,
@@ -186,7 +186,7 @@ def run_asr(
     *,
     api_key: str,
     model: str = DEFAULT_ASR_MODEL,
-    base_url: str = DEFAULT_BASE_URL,
+    base_url: str = DEFAULT_ASR_BASE_URL,
     channel: int = 1,
     poll_interval_s: float = 2.0,
     timeout_s: float = 600.0,

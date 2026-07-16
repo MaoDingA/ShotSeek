@@ -9,7 +9,7 @@ import httpx
 
 from shotseek.schemas import VisualEvent
 
-from . import DEFAULT_BASE_URL, DEFAULT_VISION_MODEL
+from . import DEFAULT_CHAT_BASE_URL, DEFAULT_VISION_MODEL
 from .http import request_with_retry
 
 VISION_PROMPT_VERSION = "m0-vision-v1"
@@ -107,7 +107,7 @@ def analyze_video(
     *,
     api_key: str,
     model: str = DEFAULT_VISION_MODEL,
-    base_url: str = DEFAULT_BASE_URL,
+    base_url: str = DEFAULT_CHAT_BASE_URL,
     timeout_s: float = 300.0,
     client: httpx.Client | None = None,
     retry_attempts: int = 3,
