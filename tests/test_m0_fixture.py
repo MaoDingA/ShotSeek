@@ -41,9 +41,10 @@ def test_fixture_mode_does_not_construct_an_http_client(monkeypatch: pytest.Monk
     assert report["status"] == "pass"
     assert report["metrics"]["cache_hit"] is True
     assert manifest["inputs"]["video_delivery"] == "fixture"
-    assert report["metrics"]["visual_event_count"] == 4
-    assert report["metrics"]["utterance_count"] == 6
-    assert len(evidence) == 10
+    assert manifest["inputs"]["fixture_profile"] == "live_sse_plus_contract"
+    assert report["metrics"]["visual_event_count"] == 3
+    assert report["metrics"]["utterance_count"] == 10
+    assert len(evidence) == 13
 
 
 def test_live_failure_preserves_completed_upload_stage(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -80,8 +81,14 @@ def test_live_failure_preserves_completed_upload_stage(monkeypatch: pytest.Monke
             audio_url="https://example.invalid/golden.mp3",
         )
     created = set((PROJECT_ROOT / "runs" / "m0").iterdir()) - before
-    assert len(created) == 1
-    run_dir = created.pop()
+    matching = [
+        candidate
+        for candidate in created
+        if "simulated vision failure"
+        in (candidate / "run_report.json").read_text(encoding="utf-8")
+    ]
+    assert len(matching) == 1
+    run_dir = matching[0]
     report = json.loads((run_dir / "run_report.json").read_text(encoding="utf-8"))
     assert report["status"] == "partial"
     assert report["completed_stages"] == ["upload"]
@@ -357,8 +364,15 @@ def test_live_asr_http_failure_is_preserved_as_a_raw_artifact(
             audio_url="https://example.invalid/golden.mp3",
         )
     created = set((PROJECT_ROOT / "runs" / "m0").iterdir()) - before
-    assert len(created) == 1
-    run_dir = created.pop()
+    matching = [
+        candidate
+        for candidate in created
+        if (candidate / "raw" / "asr_response.json").is_file()
+        and "quota exceeded"
+        in (candidate / "raw" / "asr_response.json").read_text(encoding="utf-8")
+    ]
+    assert len(matching) == 1
+    run_dir = matching[0]
     report = json.loads((run_dir / "run_report.json").read_text(encoding="utf-8"))
     raw_asr = json.loads(
         (run_dir / "raw" / "asr_response.json").read_text(encoding="utf-8")

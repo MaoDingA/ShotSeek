@@ -21,7 +21,11 @@ from shotseek.providers.stepfun import (
     DEFAULT_VISION_MODEL,
 )
 from shotseek.providers.stepfun.asr import normalize_asr_response, run_asr
-from shotseek.providers.stepfun.asr_sse import SSE_ASR_SCHEMA_VERSION, run_sse_asr
+from shotseek.providers.stepfun.asr_sse import (
+    SSE_ASR_SCHEMA_VERSION,
+    normalize_sse_events,
+    run_sse_asr,
+)
 from shotseek.providers.stepfun.files import upload_video
 from shotseek.providers.stepfun.vision import (
     VISION_PROMPT_VERSION,
@@ -230,6 +234,20 @@ def run_probe(
         if video_chunks_path is not None
         else None
     )
+    fixture_dir = root / "tests" / "fixtures" / "stepfun"
+    complete_fixture_available = all(
+        (fixture_dir / filename).is_file()
+        for filename in (
+            "stepfun_file.sample.json",
+            "vision_response.sample.json",
+            "asr_response.sample.json",
+        )
+    )
+    fixture_profile = (
+        "complete_async"
+        if mode == "fixture" and complete_fixture_available
+        else ("live_sse_plus_contract" if mode == "fixture" else None)
+    )
     run_id = _new_run_id()
     run_dir = ensure_within_project(root, root / "runs" / "m0" / run_id)
     raw_dir = run_dir / "raw"
@@ -278,6 +296,7 @@ def run_probe(
                 else None
             ),
             "asr_transport": asr_transport,
+            "fixture_profile": fixture_profile,
         },
     )
     _json_dump(run_dir / "manifest.json", manifest.model_dump(mode="json"))
@@ -307,12 +326,26 @@ def run_probe(
 
     try:
         if mode == "fixture":
-            fixture_dir = root / "tests" / "fixtures" / "stepfun"
-            stepfun_file_raw = _json_load(fixture_dir / "stepfun_file.sample.json")
-            vision_raw = _json_load(fixture_dir / "vision_response.sample.json")
-            asr_raw = _json_load(fixture_dir / "asr_response.sample.json")
-            visual_events = normalize_vision_response(vision_raw, model=vision_model)
-            utterances = normalize_asr_response(asr_raw)
+            if complete_fixture_available:
+                stepfun_file_raw = _json_load(
+                    fixture_dir / "stepfun_file.sample.json"
+                )
+                vision_raw = _json_load(fixture_dir / "vision_response.sample.json")
+                asr_raw = _json_load(fixture_dir / "asr_response.sample.json")
+                visual_events = normalize_vision_response(
+                    vision_raw, model=vision_model
+                )
+                utterances = normalize_asr_response(asr_raw["result"])
+            else:
+                stepfun_file_raw = _json_load(
+                    fixture_dir / "stepfun_file.contract.sample.json"
+                )
+                vision_raw = _json_load(fixture_dir / "vision_response.sample.json")
+                asr_raw = _json_load(fixture_dir / "asr_sse_response.sample.json")
+                visual_events = normalize_vision_response(
+                    vision_raw, model=vision_model
+                )
+                utterances = normalize_sse_events(asr_raw["events"])
             _json_dump(raw_dir / "stepfun_file.json", stepfun_file_raw)
             _json_dump(raw_dir / "vision_response.json", vision_raw)
             _json_dump(raw_dir / "asr_response.json", asr_raw)
@@ -561,9 +594,8 @@ def run_probe(
                 "files_api_upload": files_api_used,
                 "structured_visual_events": bool(visual_events),
                 "timestamped_asr": bool(utterances),
-                "speaker_info": any(
-                    utterance.speaker_id is not None for utterance in utterances
-                ),
+                "speaker_info": bool(utterances)
+                and all(utterance.speaker_id is not None for utterance in utterances),
                 "unified_timeline": evidence_kinds == {"visual", "dialogue"},
                 "timeline_in_bounds": True,
                 "raw_and_normalized_separated": all(

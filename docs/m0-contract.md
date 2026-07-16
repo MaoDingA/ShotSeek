@@ -140,14 +140,24 @@ Live 报告会逐项输出上述 Gate。只有所有 Gate 为 `true` 时，`m0_c
 
 - 黄金样片：75,000 ms，21,782,705 bytes，24 fps；
 - 视频 SHA256：`9a11b716f750bd61f081c47f2195ca3fdacf8b098891d862c273bfd172c50aa8`；
-- 标准化视觉事件：4；
-- 标准化 ASR 分句：6；
-- 统一证据：10；
-- 自动化测试：38 passed；
+- Fixture Profile：`live_sse_plus_contract`；
+- 真实调用派生的标准化视觉事件：3；
+- 真实调用派生的 SSE ASR 分句：10；
+- 统一证据：13；
+- 自动化测试：47 passed；
 - Fixture 运行状态：`pass`；
 - 公网 ASR 音频：https://github.com/MaoDingA/ShotSeek/releases/download/m0-golden-audio-v1/golden.mp3。
 
 ### Live 能力矩阵
+
+2026-07-16 对标准路径与 Step Plan 前缀做了相同输入的兼容性探测：
+
+| 路径 | Step Plan 前缀 | 标准 `/v1` |
+| --- | --- | --- |
+| Files API | HTTP 404，不存在兼容入口 | HTTP 402 quota exceeded |
+| 异步文件 ASR | HTTP 404，不存在兼容入口 | HTTP 402 quota exceeded |
+
+因此不能通过简单替换 Base URL 绕过额度；Step Plan 当前只公开 SSE ASR。
 
 | 能力 | 结果 | 判定 |
 | --- | --- | --- |
@@ -206,3 +216,41 @@ Live 报告会逐项输出上述 Gate。只有所有 Gate 为 `true` 时，`m0_c
 - 状态：`partial`，`m0_complete=false`。
 
 当前 M0 Live 仍保持 **BLOCKED**，原因已收敛为两个外部硬门槛：标准 Files API 上传证据，以及异步 ASR 说话人信息。SSE 真实时间戳和统一时间线已经通过，但不能用 SSE 替代完整 Files + speaker 验收。
+
+
+## 一键完成度审计
+
+```bash
+.venv/bin/python scripts/verify_m0_completion.py \
+  --run runs/m0/<run_id>
+```
+
+该命令独立读取 8 个运行产物，重新解析 Schema、核对计数、来源引用、时间范围、真实耗时、报告 Gate、Fixture 脱敏、Git 密钥、离线测试和 README 状态。任何一项失败都会返回非零退出码。
+
+当前 Run `20260716T101727.546493Z` 的审计结果为：
+
+```text
+老师清单：13 / 15 通过
+失败：files_api_upload、speaker_info
+完整 Live 派生 Fixture：未通过（与上述两个接口共用同一阻塞）
+测试：47 passed
+```
+
+额度恢复后的固定收尾顺序：
+
+```bash
+# 1. 完整 Live：Files + Step 3.7 + 异步 ASR
+.venv/bin/python scripts/run_m0_probe.py \
+  --live \
+  --video samples/golden.mp4
+
+# 2. 只允许从 m0_complete=true 的运行生成脱敏 Fixture
+.venv/bin/python scripts/update_m0_fixtures.py \
+  --run runs/m0/<run_id>
+
+# 3. 最终 15 项审计；退出码必须为 0
+.venv/bin/python scripts/verify_m0_completion.py \
+  --run runs/m0/<run_id>
+```
+
+`update_m0_fixtures.py` 会保留 ASR 的说话人和音频时间戳，只移除 file/task/session ID、服务端时间、URL、绝对路径和密钥。当前仓库中真实视觉/SSE Fixture 与尚未 Live 验证的 Files/异步 ASR 契约样本在 `fixture_provenance.sample.json` 中明确区分。

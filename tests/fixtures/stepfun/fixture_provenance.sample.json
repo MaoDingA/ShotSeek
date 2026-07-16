@@ -1,0 +1,32 @@
+{
+  "asr_async_contract.sample.json": {
+    "kind": "schema_contract",
+    "live_derived": false,
+    "reason": "standard async ASR quota unavailable"
+  },
+  "asr_sse_response.sample.json": {
+    "kind": "sanitized_live_response",
+    "live_derived": true,
+    "provider": "stepfun",
+    "sanitized_fields": [
+      "meta.session_id",
+      "meta.timestamp",
+      "item_id"
+    ],
+    "transport": "sse"
+  },
+  "stepfun_file.contract.sample.json": {
+    "kind": "schema_contract",
+    "live_derived": false,
+    "reason": "standard Files API quota unavailable"
+  },
+  "vision_response.sample.json": {
+    "kind": "sanitized_live_response",
+    "live_derived": true,
+    "provider": "stepfun",
+    "sanitized_fields": [
+      "id",
+      "created"
+    ]
+  }
+}

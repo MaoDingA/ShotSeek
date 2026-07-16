@@ -1,0 +1,741 @@
+{
+  "events": [
+    {
+      "delta": "And ",
+      "end_time": 0,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 0,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "action ",
+      "end_time": 0,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 0,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "Memory ",
+      "end_time": 0,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 0,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "override ",
+      "end_time": 0,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 0,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "in ",
+      "end_time": 5680,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 5600,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "progress ",
+      "end_time": 6400,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 5680,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "sorry ",
+      "end_time": 11040,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 9840,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "Sorry ",
+      "end_time": 11040,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 11040,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "Look ",
+      "end_time": 24160,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 11040,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "Celia ",
+      "end_time": 24720,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 24160,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "We ",
+      "end_time": 26480,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 26400,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "have ",
+      "end_time": 26580,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 26480,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "to ",
+      "end_time": 26780,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 26680,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "follow ",
+      "end_time": 27280,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 26880,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "our ",
+      "end_time": 27440,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 27280,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "passions. ",
+      "end_time": 28320,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 27440,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "You ",
+      "end_time": 29520,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 29360,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "have ",
+      "end_time": 29760,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 29520,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "your ",
+      "end_time": 29920,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 29760,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "robotics ",
+      "end_time": 30800,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 29920,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "and ",
+      "end_time": 33280,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 33200,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "I ",
+      "end_time": 34000,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 33840,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "just ",
+      "end_time": 34240,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 34000,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "want ",
+      "end_time": 34400,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 34240,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "to ",
+      "end_time": 34480,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 34400,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "be ",
+      "end_time": 34640,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 34480,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "awesome ",
+      "end_time": 35040,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 34720,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "in ",
+      "end_time": 35120,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 35120,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "space ",
+      "end_time": 35760,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 35120,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "Get ",
+      "end_time": 47360,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 47200,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "coming ",
+      "end_time": 47760,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 47440,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "Two ",
+      "end_time": 48480,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 48320,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "minutes ",
+      "end_time": 48800,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 48480,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "left ",
+      "end_time": 48960,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 48800,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "Two ",
+      "end_time": 49520,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 49440,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "minutes ",
+      "end_time": 50880,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 49600,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "up ",
+      "end_time": 51360,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 51360,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "Why ",
+      "end_time": 55200,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 52960,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "don't ",
+      "end_time": 55200,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 55200,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "you ",
+      "end_time": 55520,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 55520,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "just ",
+      "end_time": 55760,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 55520,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "admit ",
+      "end_time": 56080,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 55760,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "that ",
+      "end_time": 56160,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 56080,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "you're ",
+      "end_time": 56320,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 56160,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "freaked ",
+      "end_time": 56720,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 56320,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "out ",
+      "end_time": 56880,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 56720,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "by ",
+      "end_time": 57040,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 56880,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "my ",
+      "end_time": 57200,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 57040,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "robot ",
+      "end_time": 57600,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 57200,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "hand?",
+      "end_time": 57760,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 57600,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "Listen, ",
+      "end_time": 65120,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 64880,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "Celia. ",
+      "end_time": 65600,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 65120,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "I ",
+      "end_time": 66240,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 66160,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "was ",
+      "end_time": 66560,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 66240,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "young ",
+      "end_time": 66720,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 66560,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "and ",
+      "end_time": 68160,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 68000,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "a ",
+      "end_time": 68160,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 68160,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "dick, ",
+      "end_time": 68480,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 68320,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "but ",
+      "end_time": 69280,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 69200,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "there's ",
+      "end_time": 69520,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 69280,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "no ",
+      "end_time": 69600,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 69520,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "reason ",
+      "end_time": 69840,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 69600,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "to ",
+      "end_time": 69920,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 69920,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "destroy ",
+      "end_time": 70400,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 69920,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "the ",
+      "end_time": 70480,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 70400,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "world. ",
+      "end_time": 70800,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 70560,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "Why ",
+      "end_time": 73200,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 73040,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "does ",
+      "end_time": 73280,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 73200,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "he ",
+      "end_time": 73360,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 73280,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "do ",
+      "end_time": 73520,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 73360,
+      "type": "transcript.text.delta"
+    },
+    {
+      "delta": "this?",
+      "end_time": 73840,
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "start_time": 73520,
+      "type": "transcript.text.delta"
+    },
+    {
+      "meta": {
+        "session_id": "session_fixture_redacted",
+        "timestamp": 0
+      },
+      "text": "And action Memory override in progress sorry Sorry Look Celia We have to follow our passions. You have your robotics and I just want to be awesome in space Get coming Two minutes left Two minutes up Why don't you just admit that you're freaked out by my robot hand?Listen, Celia. I was young and a dick, but there's no reason to destroy the world. Why does he do this?",
+      "type": "transcript.text.done",
+      "usage": {
+        "input_token_details": {
+          "audio_tokens": 0,
+          "text_tokens": 0
+        },
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "type": "tokens"
+      }
+    }
+  ],
+  "request": {
+    "audio_bytes": 600754,
+    "audio_format": "mp3",
+    "enable_timestamp": true,
+    "language": null,
+    "model": "stepaudio-2.5-asr"
+  },
+  "schema_version": "stepfun-sse-asr-v1",
+  "transport": "sse"
+}

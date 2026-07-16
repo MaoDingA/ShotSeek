@@ -4,7 +4,7 @@ import json
 import re
 from pathlib import Path
 
-from shotseek.providers.stepfun.asr import normalize_asr_response
+from shotseek.providers.stepfun.asr_sse import normalize_sse_events
 from shotseek.providers.stepfun.vision import normalize_vision_response
 from shotseek.timeline.normalize import normalize_timeline
 
@@ -33,15 +33,25 @@ def test_same_fixture_produces_the_same_timeline() -> None:
         (FIXTURE_DIR / "vision_response.sample.json").read_text(encoding="utf-8")
     )
     asr_raw = json.loads(
-        (FIXTURE_DIR / "asr_response.sample.json").read_text(encoding="utf-8")
+        (FIXTURE_DIR / "asr_sse_response.sample.json").read_text(encoding="utf-8")
     )
 
     def produce() -> list[dict[str, object]]:
         events = normalize_vision_response(vision_raw, model="step-3.7-flash")
-        utterances = normalize_asr_response(asr_raw)
+        utterances = normalize_sse_events(asr_raw["events"])
         return [
             item.model_dump(mode="json")
             for item in normalize_timeline(75000, events, utterances)
         ]
 
     assert produce() == produce()
+
+
+def test_fixture_provenance_distinguishes_live_responses_from_contract_samples() -> None:
+    provenance = json.loads(
+        (FIXTURE_DIR / "fixture_provenance.sample.json").read_text(encoding="utf-8")
+    )
+    assert provenance["vision_response.sample.json"]["live_derived"] is True
+    assert provenance["asr_sse_response.sample.json"]["live_derived"] is True
+    assert provenance["stepfun_file.contract.sample.json"]["live_derived"] is False
+    assert provenance["asr_async_contract.sample.json"]["live_derived"] is False
