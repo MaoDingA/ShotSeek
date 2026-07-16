@@ -110,7 +110,10 @@ def test_live_probe_routes_each_provider_to_its_own_base_url(
                 sha256="9a11b716f750bd61f081c47f2195ca3fdacf8b098891d862c273bfd172c50aa8",
                 status="processed",
             ),
-            {"upload": {"id": "file_routing_fixture"}, "final": {"status": "processed"}},
+            {
+                "upload": {"id": "file_routing_fixture"},
+                "final": {"id": "file_routing_fixture", "status": "processed"},
+            },
         )
 
     def fake_vision(
@@ -144,6 +147,7 @@ def test_live_probe_routes_each_provider_to_its_own_base_url(
                     start_ms=2500,
                     end_ms=3000,
                     text="Hello",
+                    speaker_id="spk_1",
                 )
             ],
             {"submit": {"task_id": "fixture"}, "result": {"result": []}},
@@ -152,7 +156,7 @@ def test_live_probe_routes_each_provider_to_its_own_base_url(
     monkeypatch.setattr("shotseek.m0.upload_video", fake_upload)
     monkeypatch.setattr("shotseek.m0.analyze_video", fake_vision)
     monkeypatch.setattr("shotseek.m0.run_asr", fake_asr)
-    run_probe(
+    run_dir = run_probe(
         project_root=PROJECT_ROOT,
         video_path=GOLDEN_VIDEO,
         mode="live",
@@ -168,6 +172,10 @@ def test_live_probe_routes_each_provider_to_its_own_base_url(
         "chat": "https://chat.example.invalid/step_plan/v1",
         "asr": "https://asr.example.invalid/v1",
     }
+    report = json.loads((run_dir / "run_report.json").read_text(encoding="utf-8"))
+    assert report["status"] == "pass"
+    assert report["m0_complete"] is True
+    assert all(report["gates"].values())
 
 
 def test_direct_video_chunks_skip_files_and_preserve_source_offsets(
@@ -238,6 +246,7 @@ def test_direct_video_chunks_skip_files_and_preserve_source_offsets(
                     start_ms=500,
                     end_ms=900,
                     text="Hello",
+                    speaker_id="spk_1",
                 )
             ],
             {"submit": {"task_id": "fixture"}, "result": {"result": []}},
@@ -269,7 +278,10 @@ def test_direct_video_chunks_skip_files_and_preserve_source_offsets(
         )
     )
 
-    assert report["status"] == "pass"
+    assert report["status"] == "partial"
+    assert report["m0_complete"] is False
+    assert report["gates"]["files_api_upload"] is False
+    assert report["gates"]["speaker_info"] is True
     assert report["completed_stages"] == ["vision_input", "vision", "asr", "timeline"]
     assert report["metrics"]["vision_chunk_count"] == len(chunks)
     assert report["metrics"]["vision_completed_chunk_count"] == len(chunks)
@@ -359,3 +371,93 @@ def test_live_asr_http_failure_is_preserved_as_a_raw_artifact(
         "response": {"error": {"message": "quota exceeded"}},
         "status": "failed",
     }
+
+
+def test_cached_vision_and_sse_asr_produce_timeline_but_keep_hard_gates_partial(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    if not GOLDEN_VIDEO.exists():
+        pytest.skip("run scripts/prepare_golden_sample.py to enable the cache test")
+
+    def fake_cached_vision(
+        *args: object, **kwargs: object
+    ) -> tuple[list[VisualEvent], dict[str, object], dict[str, object]]:
+        return (
+            [
+                VisualEvent(
+                    event_id="chunk_000:visual_0001",
+                    approx_start_ms=100,
+                    approx_end_ms=500,
+                    summary="A person crosses the frame.",
+                    confidence=0.8,
+                    model="step-3.7-flash",
+                    chunk_id="chunk_000",
+                )
+            ],
+            {"mode": "direct_url_chunks", "chunks": []},
+            {
+                "mode": "direct_url_chunks",
+                "files_api_used": False,
+                "chunks": [],
+            },
+        )
+
+    def fake_sse_asr(
+        *args: object, **kwargs: object
+    ) -> tuple[list[Utterance], dict[str, object]]:
+        return (
+            [
+                Utterance(
+                    utterance_id="utterance_sse_fixture",
+                    start_ms=600,
+                    end_ms=900,
+                    text="Hello",
+                    speaker_id=None,
+                    source="stepfun_asr_sse",
+                )
+            ],
+            {"transport": "sse", "events": []},
+        )
+
+    def fail_unexpected(*args: object, **kwargs: object) -> None:
+        raise AssertionError("cached SSE probe called an unexpected provider")
+
+    monkeypatch.setattr("shotseek.m0.load_cached_vision", fake_cached_vision)
+    monkeypatch.setattr("shotseek.m0.run_sse_asr", fake_sse_asr)
+    monkeypatch.setattr("shotseek.m0.upload_video", fail_unexpected)
+    monkeypatch.setattr("shotseek.m0.analyze_video", fail_unexpected)
+    monkeypatch.setattr("shotseek.m0.run_asr", fail_unexpected)
+
+    run_dir = run_probe(
+        project_root=PROJECT_ROOT,
+        video_path=GOLDEN_VIDEO,
+        mode="live",
+        api_key="fixture-key",
+        audio_url="https://example.invalid/golden.mp3",
+        vision_cache_run=PROJECT_ROOT / ".tmp" / "cached-live-run",
+        asr_transport="sse",
+    )
+    report = json.loads((run_dir / "run_report.json").read_text(encoding="utf-8"))
+    evidence = json.loads(
+        (run_dir / "normalized" / "evidence_timeline.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    assert report["status"] == "partial"
+    assert report["m0_complete"] is False
+    assert report["completed_stages"] == ["vision_cache", "vision", "asr", "timeline"]
+    assert report["cache"] == {
+        "file_hit": True,
+        "vision_hit": True,
+        "asr_hit": False,
+    }
+    assert report["gates"]["timestamped_asr"] is True
+    assert report["gates"]["unified_timeline"] is True
+    assert report["gates"]["files_api_upload"] is False
+    assert report["gates"]["speaker_info"] is False
+    assert sorted(report["errors"]) == [
+        "gate_failed: files_api_upload",
+        "gate_failed: speaker_info",
+    ]
+    assert {item["kind"] for item in evidence} == {"visual", "dialogue"}

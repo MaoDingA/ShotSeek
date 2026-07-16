@@ -166,5 +166,8 @@ class RunReport(FrozenModel):
     models: dict[str, str]
     versions: dict[str, str]
     metrics: dict[str, int | float | bool]
+    cache: dict[str, bool] = Field(default_factory=dict)
+    gates: dict[str, bool] = Field(default_factory=dict)
+    m0_complete: bool = False
     completed_stages: list[str] = Field(default_factory=list)
     errors: list[str] = Field(default_factory=list)

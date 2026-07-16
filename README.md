@@ -77,6 +77,18 @@ cp .env.example .env
   --video samples/golden.mp4
 ```
 
+默认 `async_file` 通道用于完整 M0 验收，因为它能够返回说话人信息。Step Plan 套餐内的 SSE 通道可用于验证真实 ASR 时间戳；请求会显式发送 `enable_timestamp=true`：
+
+```bash
+.venv/bin/python scripts/run_m0_probe.py \
+  --live \
+  --video samples/golden-stepfun.mp4 \
+  --vision-cache-run runs/m0/<vision_run_id> \
+  --asr-transport sse
+```
+
+SSE 通道已经取得有效毫秒时间戳，但当前响应不包含说话人字段，因此不会被探针误判为完整 M0 通过。
+
 当标准 Files API 暂时没有额度时，也可以用项目目录内的 JSON 清单提供连续、完整覆盖原片的公网视频分片：
 
 ```bash
@@ -95,9 +107,11 @@ cp .env.example .env
 | 开放授权黄金样片 | 已完成 |
 | 毫秒时间线 Schema | 已完成 |
 | Files / 视频 / ASR 接口适配 | 已完成 |
-| 离线 Fixture 与契约测试 | 已完成，33 passed |
+| 离线 Fixture 与契约测试 | 已完成，38 passed |
 | 公网 ASR 黄金音频 | 已完成 |
 | StepFun 鉴权与基础能力验证 | 已完成 |
 | Step 3.7 原生视频 | 已通过：1～10 秒稳定；75 秒样片按 8 段处理得到 23 个事件 |
-| M0 Live 硬门槛 | BLOCKED：当前账户的标准 Files/异步 ASR 额度及 ASR 毫秒时间戳尚未满足验收条件 |
+| Step Plan SSE ASR 时间戳 | 已通过：75 秒音频得到 10 个分句、60 个带时间戳片段 |
+| 多模态统一时间线 | 已通过：23 条视觉事件 + 10 条对白 = 33 条证据 |
+| M0 Live 硬门槛 | BLOCKED：当前账户的标准 Files API 与异步文件 ASR 返回 402，尚缺正式上传证据和说话人信息 |
 | shot-first 镜头校准 | 下一阶段 |

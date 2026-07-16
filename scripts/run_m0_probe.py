@@ -18,6 +18,7 @@ from shotseek.providers.stepfun import (
     DEFAULT_ASR_MODEL,
     DEFAULT_CHAT_BASE_URL,
     DEFAULT_FILES_BASE_URL,
+    DEFAULT_SSE_ASR_BASE_URL,
     DEFAULT_VISION_MODEL,
 )
 
@@ -35,6 +36,17 @@ def parse_args() -> argparse.Namespace:
         "--video-chunks",
         type=Path,
         help="Optional project-local JSON manifest of contiguous <=10s public video URLs",
+    )
+    parser.add_argument(
+        "--vision-cache-run",
+        type=Path,
+        help="Optional project-local live run whose visual evidence matches --video",
+    )
+    parser.add_argument(
+        "--asr-transport",
+        choices=("async_file", "sse"),
+        default="async_file",
+        help="Use timestamped Step Plan SSE or standard async file ASR",
     )
     return parser.parse_args()
 
@@ -68,6 +80,11 @@ def main() -> int:
         if args.video_chunks is None or args.video_chunks.is_absolute()
         else PROJECT_ROOT / args.video_chunks
     )
+    vision_cache_run = (
+        args.vision_cache_run
+        if args.vision_cache_run is None or args.vision_cache_run.is_absolute()
+        else PROJECT_ROOT / args.vision_cache_run
+    )
 
     if mode == "fixture":
         run_dir = run_probe(
@@ -87,6 +104,8 @@ def main() -> int:
             api_key=api_key,
             audio_url=audio_url,
             video_chunks_path=video_chunks,
+            vision_cache_run=vision_cache_run,
+            asr_transport=args.asr_transport,
             files_base_url=os.environ.get(
                 "STEPFUN_FILES_BASE_URL", DEFAULT_FILES_BASE_URL
             ),
@@ -95,6 +114,9 @@ def main() -> int:
             ),
             asr_base_url=os.environ.get(
                 "STEPFUN_ASR_BASE_URL", DEFAULT_ASR_BASE_URL
+            ),
+            sse_asr_base_url=os.environ.get(
+                "STEPFUN_SSE_ASR_BASE_URL", DEFAULT_SSE_ASR_BASE_URL
             ),
             vision_model=os.environ.get("STEPFUN_VISION_MODEL", DEFAULT_VISION_MODEL),
             asr_model=os.environ.get("STEPFUN_ASR_MODEL", DEFAULT_ASR_MODEL),

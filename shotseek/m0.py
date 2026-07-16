@@ -17,9 +17,11 @@ from shotseek.providers.stepfun import (
     DEFAULT_ASR_MODEL,
     DEFAULT_CHAT_BASE_URL,
     DEFAULT_FILES_BASE_URL,
+    DEFAULT_SSE_ASR_BASE_URL,
     DEFAULT_VISION_MODEL,
 )
 from shotseek.providers.stepfun.asr import normalize_asr_response, run_asr
+from shotseek.providers.stepfun.asr_sse import SSE_ASR_SCHEMA_VERSION, run_sse_asr
 from shotseek.providers.stepfun.files import upload_video
 from shotseek.providers.stepfun.vision import (
     VISION_PROMPT_VERSION,
@@ -28,11 +30,17 @@ from shotseek.providers.stepfun.vision import (
     analyze_video,
     normalize_vision_response,
 )
-from shotseek.schemas import RunManifest, RunReport, VideoChunkInput, VideoInfo
+from shotseek.schemas import (
+    RunManifest,
+    RunReport,
+    VideoChunkInput,
+    VideoInfo,
+    VisualEvent,
+)
 from shotseek.timeline.normalize import normalize_timeline
 from shotseek.timeline.validate import validate_evidence_timeline
 
-M0_SCHEMA_VERSION = "m0-schema-v2"
+M0_SCHEMA_VERSION = "m0-schema-v3"
 
 
 def _json_dump(path: Path, value: Any) -> None:
@@ -165,6 +173,29 @@ def load_video_chunks(
     return chunks
 
 
+def load_cached_vision(
+    project_root: Path,
+    run_path: Path,
+    video: VideoInfo,
+) -> tuple[list[VisualEvent], Any, Any]:
+    source = ensure_within_project(project_root, run_path)
+    source_manifest = RunManifest.model_validate(_json_load(source / "manifest.json"))
+    if source_manifest.mode != "live":
+        raise ValueError("vision cache must come from a live run")
+    if source_manifest.video.sha256 != video.sha256:
+        raise ValueError("vision cache video SHA256 does not match current video")
+    if source_manifest.video.duration_ms != video.duration_ms:
+        raise ValueError("vision cache duration does not match current video")
+
+    event_items = _json_load(source / "normalized" / "visual_events.json")
+    if not isinstance(event_items, list) or not event_items:
+        raise ValueError("vision cache does not contain visual events")
+    visual_events = [VisualEvent.model_validate(item) for item in event_items]
+    vision_raw = _json_load(source / "raw" / "vision_response.json")
+    stepfun_file_raw = _json_load(source / "raw" / "stepfun_file.json")
+    return visual_events, vision_raw, stepfun_file_raw
+
+
 def run_probe(
     *,
     project_root: Path,
@@ -173,9 +204,12 @@ def run_probe(
     api_key: str | None = None,
     audio_url: str | None = None,
     video_chunks_path: Path | None = None,
+    vision_cache_run: Path | None = None,
+    asr_transport: str = "async_file",
     files_base_url: str = DEFAULT_FILES_BASE_URL,
     chat_base_url: str = DEFAULT_CHAT_BASE_URL,
     asr_base_url: str = DEFAULT_ASR_BASE_URL,
+    sse_asr_base_url: str = DEFAULT_SSE_ASR_BASE_URL,
     vision_model: str = DEFAULT_VISION_MODEL,
     asr_model: str = DEFAULT_ASR_MODEL,
 ) -> Path:
@@ -185,6 +219,12 @@ def run_probe(
     video = probe_video(root, video_path)
     if mode == "fixture" and video_chunks_path is not None:
         raise ValueError("fixture mode does not accept a video chunk manifest")
+    if mode == "fixture" and vision_cache_run is not None:
+        raise ValueError("fixture mode does not accept a live vision cache")
+    if video_chunks_path is not None and vision_cache_run is not None:
+        raise ValueError("choose either video chunks or a vision cache run, not both")
+    if asr_transport not in {"async_file", "sse"}:
+        raise ValueError("asr_transport must be async_file or sse")
     video_chunks = (
         load_video_chunks(root, video_chunks_path, video.duration_ms)
         if video_chunks_path is not None
@@ -202,6 +242,7 @@ def run_probe(
         "prompt": VISION_PROMPT_VERSION,
         "vision_schema": VISION_SCHEMA_VERSION,
         "m0_schema": M0_SCHEMA_VERSION,
+        "sse_asr_schema": SSE_ASR_SCHEMA_VERSION,
     }
     manifest = RunManifest(
         run_id=run_id,
@@ -217,7 +258,11 @@ def run_probe(
                 "fixture"
                 if mode == "fixture"
                 else (
-                    "direct_url_chunks" if video_chunks is not None else "files_api"
+                    "vision_cache"
+                    if vision_cache_run is not None
+                    else (
+                        "direct_url_chunks" if video_chunks is not None else "files_api"
+                    )
                 )
             ),
             "video_chunks": (
@@ -227,20 +272,34 @@ def run_probe(
                 if video_chunks_path is not None
                 else None
             ),
+            "vision_cache_run": (
+                str(ensure_within_project(root, vision_cache_run).relative_to(root))
+                if vision_cache_run is not None
+                else None
+            ),
+            "asr_transport": asr_transport,
         },
     )
     _json_dump(run_dir / "manifest.json", manifest.model_dump(mode="json"))
 
     metrics: dict[str, int | float | bool] = {
         "cache_hit": mode == "fixture",
-        "upload_ms": 0,
-        "vision_ms": 0,
-        "asr_ms": 0,
-        "normalize_ms": 0,
+        "file_upload_ms": 0,
+        "vision_request_ms": 0,
+        "asr_submit_ms": 0,
+        "asr_total_ms": 0,
+        "normalization_ms": 0,
         "completed_stage_count": 0,
     }
     errors: list[str] = []
     completed_stages: list[str] = []
+    cache = {
+        "file_hit": mode == "fixture" or vision_cache_run is not None,
+        "vision_hit": mode == "fixture" or vision_cache_run is not None,
+        "asr_hit": mode == "fixture",
+    }
+    gates: dict[str, bool] = {}
+    m0_complete = False
 
     def mark_stage(stage: str) -> None:
         completed_stages.append(stage)
@@ -272,7 +331,25 @@ def run_probe(
             if not audio_url:
                 raise ValueError("--audio-url or GOLDEN_AUDIO_URL is required in live mode")
 
-            if video_chunks is None:
+            vision_cached = vision_cache_run is not None
+            if vision_cache_run is not None:
+                visual_events, vision_raw, stepfun_file_raw = load_cached_vision(
+                    root,
+                    vision_cache_run,
+                    video,
+                )
+                _json_dump(raw_dir / "stepfun_file.json", stepfun_file_raw)
+                _json_dump(raw_dir / "vision_response.json", vision_raw)
+                _json_dump(
+                    normalized_dir / "visual_events.json",
+                    [event.model_dump(mode="json") for event in visual_events],
+                )
+                metrics["visual_event_count"] = len(visual_events)
+                mark_stage("vision_cache")
+
+            if vision_cached:
+                pass
+            elif video_chunks is None:
                 started = time.perf_counter()
                 try:
                     uploaded, stepfun_file_raw = upload_video(
@@ -281,7 +358,7 @@ def run_probe(
                         base_url=files_base_url,
                     )
                 finally:
-                    metrics["upload_ms"] = round(
+                    metrics["file_upload_ms"] = round(
                         (time.perf_counter() - started) * 1000
                     )
                 _json_dump(raw_dir / "stepfun_file.json", stepfun_file_raw)
@@ -307,7 +384,9 @@ def run_probe(
 
             started = time.perf_counter()
             try:
-                if video_chunks is None:
+                if vision_cached:
+                    pass
+                elif video_chunks is None:
                     visual_events, vision_raw = analyze_video(
                         uploaded.file_uri,
                         api_key=api_key,
@@ -370,7 +449,7 @@ def run_probe(
                             ],
                         )
             finally:
-                metrics["vision_ms"] = round((time.perf_counter() - started) * 1000)
+                metrics["vision_request_ms"] = round((time.perf_counter() - started) * 1000)
             metrics["visual_event_count"] = len(visual_events)
             _json_dump(raw_dir / "vision_response.json", vision_raw)
             _json_dump(
@@ -383,6 +462,9 @@ def run_probe(
 
             def save_asr_submit(submit_raw: dict[str, Any]) -> None:
                 asr_partial["submit"] = submit_raw
+                metrics["asr_submit_ms"] = round(
+                    (time.perf_counter() - started) * 1000
+                )
                 _json_dump(raw_dir / "asr_response.json", asr_partial)
 
             def save_asr_result(result_raw: dict[str, Any]) -> None:
@@ -391,15 +473,26 @@ def run_probe(
 
             started = time.perf_counter()
             try:
-                utterances, asr_raw = run_asr(
-                    audio_url,
-                    api_key=api_key,
-                    model=asr_model,
-                    base_url=asr_base_url,
-                    channel=video.audio_channels or 1,
-                    on_submit=save_asr_submit,
-                    on_result=save_asr_result,
-                )
+                if asr_transport == "sse":
+                    utterances, asr_raw = run_sse_asr(
+                        audio_url,
+                        api_key=api_key,
+                        model=asr_model,
+                        base_url=sse_asr_base_url,
+                    )
+                    metrics["asr_submit_ms"] = round(
+                        (time.perf_counter() - started) * 1000
+                    )
+                else:
+                    utterances, asr_raw = run_asr(
+                        audio_url,
+                        api_key=api_key,
+                        model=asr_model,
+                        base_url=asr_base_url,
+                        channel=video.audio_channels or 1,
+                        on_submit=save_asr_submit,
+                        on_result=save_asr_result,
+                    )
             except httpx.HTTPStatusError as exc:
                 try:
                     response_body: Any = exc.response.json()
@@ -416,8 +509,14 @@ def run_probe(
                 )
                 raise
             finally:
-                metrics["asr_ms"] = round((time.perf_counter() - started) * 1000)
+                metrics["asr_total_ms"] = round((time.perf_counter() - started) * 1000)
             metrics["utterance_count"] = len(utterances)
+            metrics["timestamped_utterance_count"] = sum(
+                utterance.end_ms > utterance.start_ms for utterance in utterances
+            )
+            metrics["speaker_utterance_count"] = sum(
+                utterance.speaker_id is not None for utterance in utterances
+            )
             _json_dump(raw_dir / "asr_response.json", asr_raw)
             _json_dump(
                 normalized_dir / "utterances.json",
@@ -428,7 +527,7 @@ def run_probe(
         started = time.perf_counter()
         evidence = normalize_timeline(video.duration_ms, visual_events, utterances)
         validate_evidence_timeline(evidence, video.duration_ms)
-        metrics["normalize_ms"] = round((time.perf_counter() - started) * 1000)
+        metrics["normalization_ms"] = round((time.perf_counter() - started) * 1000)
         metrics["visual_event_count"] = len(visual_events)
         metrics["utterance_count"] = len(utterances)
         metrics["evidence_count"] = len(evidence)
@@ -437,10 +536,59 @@ def run_probe(
             [item.model_dump(mode="json") for item in evidence],
         )
         mark_stage("timeline")
+
+        if mode == "live":
+            evidence_kinds = {item.kind.value for item in evidence}
+            file_final = (
+                stepfun_file_raw.get("final")
+                if isinstance(stepfun_file_raw, dict)
+                else None
+            )
+            files_api_used = (
+                isinstance(file_final, dict)
+                and bool(str(file_final.get("id", "")).strip())
+                and str(file_final.get("status", "")).lower() in {"success", "processed"}
+            )
+            license_text = (root / "samples" / "README.md").read_text(
+                encoding="utf-8"
+            )
+            gates = {
+                "golden_video_public_license": (
+                    video.path.startswith("samples/")
+                    and "Creative Commons Attribution 3.0" in license_text
+                ),
+                "video_under_128mb": video.bytes < 128 * 1024 * 1024,
+                "files_api_upload": files_api_used,
+                "structured_visual_events": bool(visual_events),
+                "timestamped_asr": bool(utterances),
+                "speaker_info": any(
+                    utterance.speaker_id is not None for utterance in utterances
+                ),
+                "unified_timeline": evidence_kinds == {"visual", "dialogue"},
+                "timeline_in_bounds": True,
+                "raw_and_normalized_separated": all(
+                    path.is_file()
+                    for path in (
+                        raw_dir / "stepfun_file.json",
+                        raw_dir / "vision_response.json",
+                        raw_dir / "asr_response.json",
+                        normalized_dir / "visual_events.json",
+                        normalized_dir / "utterances.json",
+                        normalized_dir / "evidence_timeline.json",
+                    )
+                ),
+            }
+            m0_complete = all(gates.values())
+            errors = [
+                f"gate_failed: {name}"
+                for name, passed in gates.items()
+                if not passed
+            ]
+
         report = RunReport(
             run_id=run_id,
             mode=mode,
-            status="pass",
+            status="pass" if mode == "fixture" or m0_complete else "partial",
             video={
                 "sha256": video.sha256,
                 "duration_ms": video.duration_ms,
@@ -449,8 +597,11 @@ def run_probe(
             models=models,
             versions=versions,
             metrics=metrics,
+            cache=cache,
+            gates=gates,
+            m0_complete=m0_complete,
             completed_stages=completed_stages,
-            errors=[],
+            errors=errors,
         )
         _json_dump(run_dir / "run_report.json", report.model_dump(mode="json"))
         return run_dir
@@ -468,6 +619,9 @@ def run_probe(
             models=models,
             versions=versions,
             metrics=metrics,
+            cache=cache,
+            gates=gates,
+            m0_complete=m0_complete,
             completed_stages=completed_stages,
             errors=errors,
         )

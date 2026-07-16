@@ -3,6 +3,7 @@
 DEFAULT_FILES_BASE_URL = "https://api.stepfun.com/v1"
 DEFAULT_CHAT_BASE_URL = "https://api.stepfun.com/step_plan/v1"
 DEFAULT_ASR_BASE_URL = "https://api.stepfun.com/v1"
+DEFAULT_SSE_ASR_BASE_URL = "https://api.stepfun.com/step_plan/v1"
 # Backwards-compatible alias for provider-level callers that still import it.
 DEFAULT_BASE_URL = DEFAULT_FILES_BASE_URL
 DEFAULT_VISION_MODEL = "step-3.7-flash"
