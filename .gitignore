@@ -21,6 +21,7 @@ coverage.xml
 htmlcov/
 .venv/
 venv/
+*.egg-info/
 
 # Node.js and frontend
 node_modules/
@@ -48,6 +49,7 @@ pnpm-debug.log*
 /outputs/
 /tmp/
 /uploads/
+/runs/
 
 # Local databases
 *.db

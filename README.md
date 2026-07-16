@@ -54,3 +54,35 @@ flowchart LR
 ## 项目状态
 
 ShotSeek 正在持续开发中，代码、演示和使用说明将陆续开放。
+
+## M0 契约探针
+
+当前版本已经提供 StepFun 视频理解、StepAudio ASR 与统一毫秒时间线的最小契约探针。离线模式使用脱敏 Fixture，不需要 API Key 或网络：
+
+```bash
+python3 scripts/prepare_golden_sample.py
+python3 -m venv .venv
+.venv/bin/python -m pip install -e ".[dev]"
+.venv/bin/python scripts/run_m0_probe.py --fixture --video samples/golden.mp4
+.venv/bin/python -m pytest -q
+```
+
+Live 模式需要 `STEPFUN_API_KEY` 和一个公网可访问的音频 URL：
+
+```bash
+.venv/bin/python scripts/run_m0_probe.py \
+  --live \
+  --video samples/golden.mp4 \
+  --audio-url "$GOLDEN_AUDIO_URL"
+```
+
+每次运行都会在 `runs/m0/<run_id>/` 中生成原始响应、标准化证据、统一时间线和运行报告；该目录不会提交到 Git。
+
+| M0 能力 | 状态 |
+| --- | --- |
+| 开放授权黄金样片 | 已完成 |
+| 毫秒时间线 Schema | 已完成 |
+| Files / 视频 / ASR 接口适配 | 已完成 |
+| 离线 Fixture 与契约测试 | 已完成 |
+| StepFun Live 验证 | 等待本地 API Key |
+| shot-first 镜头校准 | 下一阶段 |

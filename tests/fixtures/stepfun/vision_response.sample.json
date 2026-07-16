@@ -1,0 +1,14 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "{\"chunk_id\":\"chunk_000\",\"events\":[{\"event_id\":\"visual_0001\",\"approx_start_ms\":0,\"approx_end_ms\":6500,\"summary\":\"An operator in a control room signals for an action to begin while looking at monitors.\",\"characters\":[\"operator\"],\"actions\":[\"signals\",\"looks at monitors\"],\"objects\":[\"monitors\",\"control console\"],\"location\":\"control room\",\"visible_text\":[],\"confidence\":0.91},{\"event_id\":\"visual_0002\",\"approx_start_ms\":7000,\"approx_end_ms\":15000,\"summary\":\"A woman faces a man and moves her mechanical hand while he reacts.\",\"characters\":[\"woman\",\"man\"],\"actions\":[\"faces\",\"moves hand\",\"reacts\"],\"objects\":[\"mechanical hand\"],\"location\":\"industrial interior\",\"visible_text\":[],\"confidence\":0.94},{\"event_id\":\"visual_0003\",\"approx_start_ms\":23000,\"approx_end_ms\":39000,\"summary\":\"The man and woman continue facing each other as the mechanical arm remains visible between them.\",\"characters\":[\"woman\",\"man\"],\"actions\":[\"face each other\"],\"objects\":[\"mechanical arm\"],\"location\":\"industrial interior\",\"visible_text\":[],\"confidence\":0.9},{\"event_id\":\"visual_0004\",\"approx_start_ms\":46000,\"approx_end_ms\":62000,\"summary\":\"Several people watch equipment and gesture urgently in the control area.\",\"characters\":[\"operators\"],\"actions\":[\"watch equipment\",\"gesture\"],\"objects\":[\"monitors\",\"control panels\"],\"location\":\"control area\",\"visible_text\":[],\"confidence\":0.88}]}",
+        "role": "assistant"
+      }
+    }
+  ],
+  "model": "step-3.7-flash",
+  "object": "chat.completion"
+}

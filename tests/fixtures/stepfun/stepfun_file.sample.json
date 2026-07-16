@@ -1,0 +1,18 @@
+{
+  "final": {
+    "bytes": 12345678,
+    "filename": "golden.mp4",
+    "id": "file_fixture_redacted",
+    "object": "file",
+    "purpose": "storage",
+    "status": "processed"
+  },
+  "upload": {
+    "bytes": 12345678,
+    "filename": "golden.mp4",
+    "id": "file_fixture_redacted",
+    "object": "file",
+    "purpose": "storage",
+    "status": "processed"
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "duration": 75.0,
+  "result": [
+    {
+      "text": "And action. Memory overwrite in progress. You're a jerk, Thom. Sorry, sorry. Look, Celia. We have to follow our passions. You have your robotics, and I just want to be awesome in space.",
+      "utterances": [
+        {
+          "end_time": 3000,
+          "speaker": {"id": "spk_1"},
+          "start_time": 0,
+          "text": "And action.",
+          "words": [
+            {"end_time": 900, "start_time": 100, "text": "And"},
+            {"end_time": 2600, "start_time": 1000, "text": "action"}
+          ]
+        },
+        {
+          "end_time": 6500,
+          "speaker": {"id": "spk_2"},
+          "start_time": 4500,
+          "text": "Memory overwrite in progress.",
+          "words": [
+            {"end_time": 5200, "start_time": 4600, "text": "Memory"},
+            {"end_time": 6400, "start_time": 5300, "text": "overwrite"}
+          ]
+        },
+        {
+          "end_time": 9000,
+          "speaker": {"id": "spk_3"},
+          "start_time": 7000,
+          "text": "You're a jerk, Thom.",
+          "words": [
+            {"end_time": 7900, "start_time": 7100, "text": "You're"},
+            {"end_time": 8900, "start_time": 8000, "text": "Thom"}
+          ]
+        },
+        {
+          "end_time": 13000,
+          "speaker": {"id": "spk_4"},
+          "start_time": 10500,
+          "text": "Sorry, sorry.",
+          "words": [
+            {"end_time": 11600, "start_time": 10600, "text": "Sorry"},
+            {"end_time": 12800, "start_time": 11700, "text": "sorry"}
+          ]
+        },
+        {
+          "end_time": 25000,
+          "speaker": {"id": "spk_4"},
+          "start_time": 24000,
+          "text": "Look, Celia.",
+          "words": [
+            {"end_time": 24400, "start_time": 24000, "text": "Look"},
+            {"end_time": 25000, "start_time": 24500, "text": "Celia"}
+          ]
+        },
+        {
+          "end_time": 36000,
+          "speaker": {"id": "spk_4"},
+          "start_time": 26000,
+          "text": "We have to follow our passions. You have your robotics, and I just want to be awesome in space.",
+          "words": [
+            {"end_time": 28500, "start_time": 26000, "text": "We have to follow our passions"},
+            {"end_time": 36000, "start_time": 29000, "text": "I just want to be awesome in space"}
+          ]
+        }
+      ]
+    }
+  ]
+}
