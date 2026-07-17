@@ -10,6 +10,7 @@ import {
 } from "react";
 import {
   cancelJob,
+  exportUrl,
   listenToJob,
   loadEvidence,
   loadWorkspace,
@@ -283,7 +284,7 @@ export default function App() {
           {videos.length > 0 ? <select value={selectedVideoId ?? ""} onChange={(event) => { setSelectedVideoId(event.target.value); setHits([]); setSelectedHit(null); }} aria-label="选择视频">{videos.map((video) => <option key={video.video_id} value={video.video_id}>{video.original_filename}</option>)}</select> : <span>尚无视频</span>}
           {selectedVideo && <StatusPill value={selectedVideo.status} />}
         </div>
-        <nav><label className="topbar-upload"><Icon name="upload" />添加视频<input type="file" accept="video/*,.mkv" onChange={(event) => { const file = event.target.files?.[0]; if (file) void handleUpload(file); }} /></label><button className="icon-button" onClick={() => setDiagnostics(true)} aria-label="诊断"><Icon name="settings" /></button></nav>
+        <nav><select className="export-select" defaultValue="" disabled={!ready || !selectedVideo} aria-label="导出场景" onChange={(event) => { const format = event.currentTarget.value as "json" | "srt" | "xml" | "edl"; if (format && selectedVideo) window.location.assign(exportUrl(selectedVideo.video_id, format, hits.map((hit) => hit.candidate.scene_id))); event.currentTarget.value = ""; }}><option value="" disabled>{hits.length ? "导出命中 " + hits.length : "导出全部"}</option><option value="edl">CMX3600 EDL</option><option value="json">JSON</option><option value="srt">SRT</option><option value="xml">XML</option></select><label className="topbar-upload"><Icon name="upload" />添加视频<input type="file" accept="video/*,.mkv" onChange={(event) => { const file = event.target.files?.[0]; if (file) void handleUpload(file); }} /></label><button className="icon-button" onClick={() => setDiagnostics(true)} aria-label="诊断"><Icon name="settings" /></button></nav>
       </header>
 
       <main className={`workspace ${selectedHit ? "drawer-open" : ""}`}>

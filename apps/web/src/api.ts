@@ -82,6 +82,18 @@ export function previewUrl(videoId: string, sceneId: string): string {
   return `/api/v1/videos/${videoId}/scenes/${sceneId}/preview`;
 }
 
+export function exportUrl(
+  videoId: string,
+  format: "json" | "srt" | "xml" | "edl",
+  sceneIds: string[] = [],
+): string {
+  const params = new URLSearchParams({ format });
+  for (const sceneId of sceneIds) {
+    params.append("scene_id", sceneId);
+  }
+  return "/api/v1/videos/" + videoId + "/export?" + params.toString();
+}
+
 export function listenToJob(
   jobId: string,
   onEvent: (event: JobEvent) => void,

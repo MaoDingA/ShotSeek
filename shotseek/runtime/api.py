@@ -11,11 +11,12 @@ from pathlib import Path
 from typing import AsyncIterator, Literal
 
 from fastapi import FastAPI, HTTPException, Query, Request
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
 
 from shotseek.agent import ShotSeekAgent
+from shotseek.export.delivery import ExportFormat, render_export
 from shotseek.m0 import ensure_within_project
 from shotseek.runtime.paths import RuntimePaths, store_upload_stream
 from shotseek.runtime.pipeline import PipelineSettings, ProductionPipeline
@@ -227,6 +228,47 @@ def create_runtime_app(
             status_code=status_code,
             media_type=media_type,
             headers=headers,
+        )
+
+    @app.get("/api/v1/videos/{video_id}/export")
+    def export_scenes(
+        video_id: str,
+        format: ExportFormat = Query(),
+        scene_id: list[str] = Query(default=[]),
+    ) -> Response:
+        video, database = ready_database(video_id)
+        scenes = _database_scenes(database)
+        if scene_id:
+            requested = set(scene_id)
+            selected = [scene for scene in scenes if scene["scene_id"] in requested]
+            found = {scene["scene_id"] for scene in selected}
+            missing = sorted(requested - found)
+            if missing:
+                raise HTTPException(
+                    status_code=404,
+                    detail={"message": "scene not found", "scene_ids": missing},
+                )
+            scenes = selected
+        if video.fps is None:
+            raise HTTPException(status_code=409, detail="video frame rate is unavailable")
+        try:
+            document = render_export(
+                format,
+                scenes,
+                video_id=video.video_id,
+                source_name=video.original_filename,
+                fps=video.fps,
+            )
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+        filename = f"shotseek-{video.video_id}.{document.extension}"
+        return Response(
+            document.content,
+            media_type=document.media_type,
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"',
+                "X-ShotSeek-Scene-Count": str(len(scenes)),
+            },
         )
 
     @app.get("/api/v1/videos/{video_id}/scenes")

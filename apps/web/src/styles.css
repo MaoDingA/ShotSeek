@@ -60,6 +60,10 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .project-switcher > span:not(.status-pill) { color: var(--muted); font-size: 13px; }
 
 .topbar nav { justify-self: end; display: flex; align-items: center; gap: 8px; }
+.export-select { height: 34px; max-width: 126px; padding: 0 27px 0 10px; border: 1px solid var(--line); border-radius: 5px; color: #cdd6d1; background: var(--surface-2); cursor: pointer; font-size: 11px; }
+.export-select:hover:not(:disabled) { border-color: var(--line-strong); }
+.export-select:disabled { color: var(--muted-2); cursor: not-allowed; }
+
 .topbar-upload { height: 34px; padding: 0 12px; display: flex; align-items: center; gap: 7px; cursor: pointer; border: 1px solid var(--line); border-radius: 5px; color: #cdd6d1; background: transparent; font-size: 12px; }
 .topbar-upload:hover { border-color: var(--line-strong); background: var(--surface-2); }
 .topbar-upload input, .upload-button input { display: none; }
