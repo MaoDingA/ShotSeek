@@ -30,6 +30,14 @@
     "provider": "stepfun",
     "source_run_id": "live-planner-v1"
   },
+  "query_verifier_response.sample.json": {
+    "contract": "evidence-verdict-v1",
+    "generated_at": "2026-07-17T05:40:52.864756+00:00",
+    "kind": "sanitized_live_response",
+    "live_derived": true,
+    "provider": "stepfun",
+    "source_run_id": "live-verifier-v1"
+  },
   "stepfun_file.contract.sample.json": {
     "kind": "schema_contract",
     "live_derived": false,

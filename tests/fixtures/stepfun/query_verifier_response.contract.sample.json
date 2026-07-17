@@ -1,0 +1,16 @@
+{
+  "id": "chatcmpl_contract_fixture",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\"verdict\":\"supported\",\"direct_evidence\":true,\"matched_constraints\":[\"entities\",\"objects\"],\"failed_constraints\":[],\"contradictions\":[],\"confidence\":0.94,\"reason\":\"The structured visual evidence directly shows a woman looking at a robotic hand.\"}"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "created": 0,
+  "model": "step-3.7-flash",
+  "object": "chat.completion"
+}

@@ -1,0 +1,29 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": "{\n  \"verdict\": \"supported\",\n  \"direct_evidence\": true,\n  \"matched_constraints\": [\"looking\", \"woman\", \"outdoors\", \"robotic hand\"],\n  \"failed_constraints\": [],\n  \"contradictions\": [],\n  \"confidence\": 0.95,\n  \"reason\": \"Candidate scene directly shows a woman looking at a robotic hand outdoors, matching all query constraints with visual evidence.\"\n}",
+        "reasoning": "The user wants me to verify if the candidate scene is supported by the query spec.\n\nQuery spec:\n- Intent: find_scene\n- Actions: [\"looking\"]\n- Entities: [{\"role\": \"other\", \"text\": \"woman\"}]\n- Evidence preference: [\"visual\", \"dialogue\"]\n- Keywords: []\n- Locations: [\"outdoors\"]\n- Negative constraints: []\n- Objects: [\"robotic\", \"hand\"]\n- Quoted text: null\n- Raw query: \"woman looking at robotic hand outdoors\"\n- Require direct evidence: true\n\nCandidate scene:\n- Actions: [\"looking\", \"facing\"]\n- Characters: [\"woman\", \"person with robotic hand\"]\n- Components: boundary_quality 1.0, contradiction_penalty 0.0, dialogue_score 0.0, entity_score 1.0, evidence_coverage 0.0, lexical_score 1.0, temporal_score 1.0, visual_score 1.0\n- Dialogue: \"英语 But there's no reason to destroy the world.\"\n- Location: \"outdoors\"\n- Objects: [\"robotic hand\", \"foliage\", \"trees\"]\n- Summary: \"A woman with light brown hair looks intently at a robotic hand in an outdoor setting\"\n- Evidence refs: visual and dialogue\n- Shot IDs: shot_0023, shot_0024\n\nLet's check constraints:\n1. Action \"looking\": present in candidate actions [\"looking\", \"facing\"] - yes\n2. Entity \"woman\": present in characters [\"woman\", \"person with robotic hand\"] - yes\n3. Location \"outdoors\": present - yes\n4. Objects \"robotic\", \"hand\": candidate has \"robotic hand\" - yes\n5. No negative constraints - none present\n6. Direct evidence required: candidate has visual and dialogue evidence refs - yes\n\nAll positive constraints are directly present. No contradictions. The summary explicitly states \"A woman ... looks intently at a robotic hand in an outdoor setting\" which matches the query perfectly.\n\nConfidence should be high since all constraints are met and evidence is present.\n\nVerdict: supported\nDirect evidence: true\nMatched constraints: [\"looking\", \"woman\", \"outdoors\", \"robotic hand\"]\nFailed constraints: []\nContradictions: []\nConfidence: 0.95\nReason: Candidate scene directly shows a woman looking at a robotic hand outdoors, matching all query constraints with visual evidence.",
+        "reasoning_content": "The user wants me to verify if the candidate scene is supported by the query spec.\n\nQuery spec:\n- Intent: find_scene\n- Actions: [\"looking\"]\n- Entities: [{\"role\": \"other\", \"text\": \"woman\"}]\n- Evidence preference: [\"visual\", \"dialogue\"]\n- Keywords: []\n- Locations: [\"outdoors\"]\n- Negative constraints: []\n- Objects: [\"robotic\", \"hand\"]\n- Quoted text: null\n- Raw query: \"woman looking at robotic hand outdoors\"\n- Require direct evidence: true\n\nCandidate scene:\n- Actions: [\"looking\", \"facing\"]\n- Characters: [\"woman\", \"person with robotic hand\"]\n- Components: boundary_quality 1.0, contradiction_penalty 0.0, dialogue_score 0.0, entity_score 1.0, evidence_coverage 0.0, lexical_score 1.0, temporal_score 1.0, visual_score 1.0\n- Dialogue: \"英语 But there's no reason to destroy the world.\"\n- Location: \"outdoors\"\n- Objects: [\"robotic hand\", \"foliage\", \"trees\"]\n- Summary: \"A woman with light brown hair looks intently at a robotic hand in an outdoor setting\"\n- Evidence refs: visual and dialogue\n- Shot IDs: shot_0023, shot_0024\n\nLet's check constraints:\n1. Action \"looking\": present in candidate actions [\"looking\", \"facing\"] - yes\n2. Entity \"woman\": present in characters [\"woman\", \"person with robotic hand\"] - yes\n3. Location \"outdoors\": present - yes\n4. Objects \"robotic\", \"hand\": candidate has \"robotic hand\" - yes\n5. No negative constraints - none present\n6. Direct evidence required: candidate has visual and dialogue evidence refs - yes\n\nAll positive constraints are directly present. No contradictions. The summary explicitly states \"A woman ... looks intently at a robotic hand in an outdoor setting\" which matches the query perfectly.\n\nConfidence should be high since all constraints are met and evidence is present.\n\nVerdict: supported\nDirect evidence: true\nMatched constraints: [\"looking\", \"woman\", \"outdoors\", \"robotic hand\"]\nFailed constraints: []\nContradictions: []\nConfidence: 0.95\nReason: Candidate scene directly shows a woman looking at a robotic hand outdoors, matching all query constraints with visual evidence.",
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 0,
+  "id": "chatcmpl_fixture_redacted",
+  "model": "step-3.7-flash",
+  "object": "chat.completion",
+  "usage": {
+    "completion_tokens": 597,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "prompt_tokens": 640,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "total_tokens": 1237
+  }
+}
