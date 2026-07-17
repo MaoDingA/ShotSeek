@@ -1,146 +1,80 @@
 # ShotSeek
 
-> 一句话，定位长视频里的任意镜头。
+> 用一句话，定位长视频里的准确镜头。
 
-ShotSeek 是面向影视后期团队的长视频镜头定位 Agent。它使用 StepFun 多模态模型理解画面、对白与文字，并在 NVIDIA DGX Spark 上完成视频处理和场景索引，让剪辑师能够用自然语言快速找到目标画面。
-
-## 它能做什么
-
-输入一句话：
-
-> 找到女主第一次发现尸体的场景。
-
-ShotSeek 会返回对应的时间码、关键帧、片段预览和匹配依据，并让播放器直接跳转到目标位置。
+ShotSeek 是面向影视后期的证据对齐场景检索工具。它使用 StepFun 理解画面和对白，在 NVIDIA DGX Spark 上建立帧级、镜头级证据时间线，让自然语言查询返回可验证的时间码、镜头边界和证据引用。
 
 ## 核心能力
 
-- **自然语言找镜头**：用剧情、动作、对白、人物或物体描述目标画面。
-- **长视频场景理解**：融合视频内容、语音和画面文字建立结构化时间线。
-- **精准时间码定位**：搜索结果直接对应原始视频中的入点和出点。
-- **多模态证据**：通过关键帧、对白和文字说明为什么命中。
-- **后期友好交付**：支持导出 JSON、XML 和 SRT 等结构化结果。
+- 按对白、人物、动作、物体或地点寻找镜头。
+- 将模型的近似时间映射到原片 Shot Grid。
+- 每个结果保留视觉、对白和镜头引用，可追溯到来源。
+- 支持精确对白、视觉、多模态、序数和前后关系查询。
+- 查询阶段完全本地运行；StepFun 响应可缓存并离线重放。
 
-## 工作方式
+## 技术链路
 
 ~~~mermaid
 flowchart LR
-    A["上传长视频<br/>可选剧本或字幕"] --> B["DGX Spark<br/>转码、切片、抽帧"]
-    B --> C["StepFun<br/>视频理解与语音识别"]
-    C --> D["场景时间线<br/>证据对齐与索引"]
-    D --> E["自然语言搜索"]
-    E --> F["时间码、画面与导出"]
+    A[视频] --> B[StepFun 视频理解和 ASR]
+    B --> C[DGX Spark Shot Grid]
+    C --> D[证据对齐 Scene]
+    D --> E[SQLite FTS5 和时间规则]
+    E --> F[时间码和证据]
 ~~~
 
-## 技术栈
+- **Step 3.7 Flash**：结构化视觉事件。
+- **StepAudio 2.5 ASR**：对白、说话人和毫秒时间戳。
+- **FFmpeg / DGX Spark**：媒体探测、镜头切点和帧级时间基。
+- **SQLite FTS5**：确定性文字、多字段和时间关系检索。
 
-### StepFun
+## 当前状态
 
-- **Step 3.7 Flash**：视频理解、画面文字识别、中文推理与 Agent 编排。
-- **StepAudio 2.5 ASR**：对白识别、分句和时间戳。
+| 阶段 | 状态 | 验证结果 |
+| --- | --- | --- |
+| M0 接口与时间线契约 | 完成 | StepFun Files、视频理解、异步 ASR 真实验收通过 |
+| M1A Shot Grid 与证据对齐 | 完成 | 25 个 Shot，23/23 视觉事件，7/7 ASR，8 条人工边界审计 |
+| M1B Scene Schema | 完成 | 23 个 Scene，证据与 Shot 引用错误为 0 |
+| M1C 场景检索 | 完成 | 15/15 查询；Recall@1/3 为 1.0；负例高置信误报为 0 |
 
-### NVIDIA DGX Spark
+当前仓库提供可复现的“接口 → 时间线 → Scene → 搜索”核心。工作台 UI 和长视频产品化不在本版本范围内。
 
-- GPU 加速的视频解码、转码、切片和抽帧。
-- 长视频任务调度、场景索引、结果缓存与交付。
-- 面向影视素材的本地高性能工作站。
+## 快速开始
 
-## 使用场景
+需要 Python 3.11+ 和 FFmpeg。
 
-- 从几十分钟素材中寻找指定剧情节点。
-- 根据一句对白定位对应画面。
-- 查找包含特定人物、动作、道具或地点的镜头。
-- 为剪辑、审片和素材整理建立可检索的视频时间线。
-
-## 项目状态
-
-ShotSeek 正在持续开发中。M0「接口与时间线契约验证」已经完成：StepFun Files、Step 3.7 视频理解、StepAudio 2.5 异步 ASR 与统一毫秒时间线均已通过真实调用验证。下一阶段将实现 shot-first 镜头校准与检索闭环。
-
-## M0 契约探针
-
-当前版本已经提供 StepFun 视频理解、StepAudio ASR 与统一毫秒时间线的最小契约探针。离线模式使用脱敏 Fixture，不需要 API Key 或网络：
-
-```bash
+~~~bash
 python3 scripts/prepare_golden_sample.py
 python3 -m venv .venv
 .venv/bin/python -m pip install -e ".[dev]"
+
 .venv/bin/python scripts/run_m0_probe.py --fixture --video samples/golden.mp4
-.venv/bin/python -m pytest -q
-```
 
-Live 模式需要在项目内复制 `.env.example` 为 `.env`，填入 `STEPFUN_API_KEY`。黄金样片音频已经作为带署名的公开 Release 资产提供：
+.venv/bin/python scripts/run_m1a.py
+.venv/bin/python scripts/run_m1b.py
+.venv/bin/python scripts/run_m1c.py
 
-```bash
+.venv/bin/python scripts/verify_m1_completion.py --output runs/m1/completion-report.json
+~~~
+
+M1 使用已脱敏的真实 StepFun Fixture，运行时不会发起网络请求。运行产物写入 runs/，不会提交到 Git。
+
+## 真实 StepFun 验证
+
+复制环境文件并填写自己的密钥：
+
+~~~bash
 cp .env.example .env
-# 编辑 .env，填入 STEPFUN_API_KEY
-.venv/bin/python scripts/run_m0_probe.py \
-  --live \
-  --video samples/golden.mp4
-```
+.venv/bin/python scripts/run_m0_probe.py --live --video samples/golden.mp4
+~~~
 
-默认 `async_file` 通道用于完整 M0 验收，因为它能够返回说话人信息。Step Plan 套餐内的 SSE 通道可用于验证真实 ASR 时间戳；请求会显式发送 `enable_timestamp=true`：
+.env、媒体、数据库、运行报告和内部文档均已忽略。请勿提交密钥或原始素材。
 
-```bash
-.venv/bin/python scripts/run_m0_probe.py \
-  --live \
-  --video samples/golden-stepfun.mp4 \
-  --vision-cache-run runs/m0/<vision_run_id> \
-  --asr-transport sse
-```
+## 测试
 
-完整验收可以复用同一黄金视频已经获得的真实视觉结果，同时强制执行一次新的 Files 上传和异步 ASR。运行清单会明确记录 `files_api_plus_vision_cache`，不会把缓存伪装成新的模型调用：
+~~~bash
+.venv/bin/python -m pytest -q
+.venv/bin/python scripts/check_repository_hygiene.py
+~~~
 
-```bash
-.venv/bin/python scripts/run_m0_probe.py \
-  --live \
-  --video samples/golden-stepfun.mp4 \
-  --vision-cache-run runs/m0/<vision_run_id> \
-  --require-files-upload
-```
-
-这个入口只复用视觉响应；Files 上传和异步 ASR 仍是本次运行的真实请求。
-
-SSE 通道已经取得有效毫秒时间戳，但当前响应不包含说话人字段，因此不会被探针误判为完整 M0 通过。
-
-当标准 Files API 暂时没有额度时，也可以用项目目录内的 JSON 清单提供连续、完整覆盖原片的公网视频分片：
-
-```bash
-.venv/bin/python scripts/run_m0_probe.py \
-  --live \
-  --video samples/golden-stepfun.mp4 \
-  --video-chunks .tmp/m0-chunks/manifest.json
-```
-
-当前实测稳定分片上限取 10 秒。该入口会在运行清单中明确标记为 `direct_url_chunks`，不会伪装成 Files API 上传成功，也不能替代 M0 对 Files API 的正式验收。
-
-每次运行都会在 `runs/m0/<run_id>/` 中生成原始响应、标准化证据、统一时间线和运行报告；该目录不会提交到 Git。Live 调用对限流和临时服务错误进行有界重试，并在后续阶段失败时保留已完成阶段的真实响应。
-
-可以用一条独立命令按老师的 15 项清单重新审计 Live 运行。命令只有在所有硬门槛、Fixture 来源、测试和 README 状态同时通过时才返回 0：
-
-```bash
-.venv/bin/python scripts/verify_m0_completion.py \
-  --run runs/m0/<run_id>
-```
-
-从完整 Live 运行生成脱敏 Fixture；脚本会拒绝任何 `partial` 运行：
-
-```bash
-.venv/bin/python scripts/update_m0_fixtures.py \
-  --run runs/m0/<run_id>
-```
-
-当前默认 Files、视觉和异步 ASR Fixture 均来自完整 Live 运行并已脱敏；历史契约样本仍单独保留，不会与真实调用证据混淆。
-
-| M0 能力 | 状态 |
-| --- | --- |
-| 开放授权黄金样片 | 已完成 |
-| 毫秒时间线 Schema | 已完成 |
-| Files / 视频 / ASR 接口适配 | 已完成 |
-| 离线 Fixture 与契约测试 | 已完成，48 passed |
-| 公网 ASR 黄金音频 | 已完成 |
-| StepFun 鉴权与基础能力验证 | 已完成 |
-| Step 3.7 原生视频 | 已通过：1～10 秒稳定；75 秒样片按 8 段处理得到 23 个事件 |
-| Step Plan SSE ASR 时间戳 | 已通过：75 秒音频得到 10 个分句、60 个带时间戳片段 |
-| 标准 Files 与异步 ASR | 已通过：Fresh Files 上传；7/7 个 ASR 分句含时间戳和说话人 |
-| 多模态统一时间线 | 已通过：23 条视觉事件 + 7 条对白 = 30 条证据 |
-| M0 Live 硬门槛 | 已通过：Run `20260717T031522.134383Z`，老师清单 15/15 |
-| shot-first 镜头校准 | 下一阶段 |
+黄金样片来自 Blender Foundation 的 *Tears of Steel*；来源和许可信息见 samples/README.md。

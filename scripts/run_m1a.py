@@ -11,7 +11,7 @@ from shotseek.m1a import run_m1a
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--video", default="samples/golden-stepfun.mp4")
+    parser.add_argument("--video", default="samples/golden.mp4")
     parser.add_argument("--output", default="runs/m1a/latest")
     args = parser.parse_args()
     root = Path.cwd().resolve()

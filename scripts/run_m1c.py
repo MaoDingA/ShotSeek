@@ -11,8 +11,8 @@ from shotseek.m1c import run_m1c
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--m1a", default="runs/m1a/20260717-m1a-v1")
-    parser.add_argument("--m1b", default="runs/m1b/20260717-m1b-v1")
+    parser.add_argument("--m1a", default="runs/m1a/latest")
+    parser.add_argument("--m1b", default="runs/m1b/latest")
     parser.add_argument("--output", default="runs/m1c/latest")
     parser.add_argument("--queries", default="eval/m1_queries.jsonl")
     args = parser.parse_args()

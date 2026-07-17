@@ -45,7 +45,7 @@ def test_complete_grid_without_boundaries() -> None:
 
 def test_golden_m1a_is_deterministic() -> None:
     root = Path(__file__).resolve().parents[1]
-    video = root / "samples" / "golden-stepfun.mp4"
+    video = root / "samples" / "golden.mp4"
     if not video.is_file():
         return
     first = run_m1a(

@@ -11,7 +11,7 @@ from shotseek.m1b import run_m1b
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--m1a", default="runs/m1a/20260717-m1a-v1")
+    parser.add_argument("--m1a", default="runs/m1a/latest")
     parser.add_argument("--output", default="runs/m1b/latest")
     args = parser.parse_args()
     root = Path.cwd().resolve()
