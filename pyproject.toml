@@ -20,6 +20,9 @@ dev = [
   "pytest>=8,<9",
 ]
 
+[project.scripts]
+shotseek-runtime = "shotseek.runtime.server:main"
+
 [tool.setuptools.packages.find]
 include = ["shotseek*"]
 

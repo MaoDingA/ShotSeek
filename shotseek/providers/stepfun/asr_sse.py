@@ -99,6 +99,73 @@ def normalize_sse_events(
     return utterances
 
 
+def run_sse_asr_bytes(
+    audio_bytes: bytes,
+    *,
+    audio_format: str,
+    api_key: str,
+    model: str = DEFAULT_ASR_MODEL,
+    base_url: str = DEFAULT_SSE_ASR_BASE_URL,
+    language: str | None = None,
+    timeout_s: float = 180.0,
+    client: httpx.Client | None = None,
+    retry_attempts: int = 3,
+    retry_base_delay_s: float = 0.5,
+) -> tuple[list[Utterance], dict[str, Any]]:
+    """Submit local audio bytes directly to Step Plan without a public URL."""
+    if not audio_bytes:
+        raise ValueError("audio bytes cannot be empty")
+    normalized_format = audio_format.lower().lstrip(".")
+    if normalized_format not in {"mp3", "wav", "ogg", "pcm"}:
+        raise ValueError("unsupported SSE ASR audio format")
+    owns_client = client is None
+    http = client or httpx.Client(timeout=httpx.Timeout(timeout_s))
+    try:
+        transcription: dict[str, Any] = {
+            "model": model,
+            "enable_itn": True,
+            "enable_timestamp": True,
+        }
+        if language:
+            transcription["language"] = language
+        request_body = {
+            "audio": {
+                "data": base64.b64encode(audio_bytes).decode("ascii"),
+                "input": {
+                    "transcription": transcription,
+                    "format": {"type": normalized_format},
+                },
+            }
+        }
+        response = request_with_retry(
+            lambda: http.post(
+                f"{base_url.rstrip('/')}/audio/asr/sse",
+                headers=_headers(api_key),
+                json=request_body,
+            ),
+            max_attempts=retry_attempts,
+            base_delay_s=retry_base_delay_s,
+        )
+        events = parse_sse_events(response.text)
+        utterances = normalize_sse_events(events)
+        raw = {
+            "transport": "sse",
+            "schema_version": SSE_ASR_SCHEMA_VERSION,
+            "request": {
+                "model": model,
+                "audio_format": normalized_format,
+                "enable_timestamp": True,
+                "language": language,
+                "audio_bytes": len(audio_bytes),
+            },
+            "events": events,
+        }
+        return utterances, raw
+    finally:
+        if owns_client:
+            http.close()
+
+
 def run_sse_asr(
     audio_url: str,
     *,
