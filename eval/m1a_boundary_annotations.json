@@ -1,0 +1,55 @@
+{
+  "schema_version": "m1a-human-boundary-v1",
+  "review_method": "visual inspection of pre/start/last/post frame contact sheet",
+  "reviewer": "human",
+  "items": [
+    {
+      "event_id": "chunk_000:visual_0001",
+      "human_start_frame": 0,
+      "human_end_frame": 75,
+      "note": "Room dialogue ends at the visible cut to the glowing console."
+    },
+    {
+      "event_id": "chunk_001:visual_0002",
+      "human_start_frame": 257,
+      "human_end_frame": 377,
+      "note": "Monitor room is bounded by cuts from and to the mechanical figure."
+    },
+    {
+      "event_id": "chunk_002:visual_0002",
+      "human_start_frame": 489,
+      "human_end_frame": 671,
+      "note": "Profile and close-up sequence is bounded by character-angle changes."
+    },
+    {
+      "event_id": "chunk_003:visual_0003",
+      "human_start_frame": 770,
+      "human_end_frame": 875,
+      "note": "Young man's close-up begins after the canal view and ends at the cityscape."
+    },
+    {
+      "event_id": "chunk_004:visual_0001",
+      "human_start_frame": 919,
+      "human_end_frame": 1126,
+      "note": "Scoped rooftop robot sequence ends at the cut to the rifle operator."
+    },
+    {
+      "event_id": "chunk_005:visual_0001",
+      "human_start_frame": 1181,
+      "human_end_frame": 1307,
+      "note": "Mechanical-eye close-up is bounded by the shooter and woman shots."
+    },
+    {
+      "event_id": "chunk_006:visual_0002",
+      "human_start_frame": 1457,
+      "human_end_frame": 1544,
+      "note": "Man observing the robotic hand is bounded by the lab and reverse shot."
+    },
+    {
+      "event_id": "chunk_006:visual_0003",
+      "human_start_frame": 1457,
+      "human_end_frame": 1683,
+      "note": "Two-shot interaction runs from the lab cut to the woman's close-up."
+    }
+  ]
+}
