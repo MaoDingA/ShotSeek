@@ -1,0 +1,15 @@
+{"query_id":"hold01","category":"visual_action","text":"large white rabbit sniffing white flowers","acceptable_scene_ids":["scene_0167"]}
+{"query_id":"hold02","category":"visual_action","text":"rabbit notices a red apple and picks it up","acceptable_scene_ids":["scene_0171"]}
+{"query_id":"hold03","category":"visual_event","text":"green pear falls and hits the rabbit's head","acceptable_scene_ids":["scene_0178"]}
+{"query_id":"hold04","category":"visual_event","text":"squirrel throws a small white object at a purple butterfly","acceptable_scene_ids":["scene_0180"]}
+{"query_id":"hold05","category":"visual_action","text":"tired rabbit leans against a tree trunk","acceptable_scene_ids":["scene_0184"]}
+{"query_id":"hold06","category":"visual_action","text":"rabbit swings on a vine and lands","acceptable_scene_ids":["scene_0188"]}
+{"query_id":"hold07","category":"visual_action","text":"rabbit carves a branch into a spear","acceptable_scene_ids":["scene_0189"]}
+{"query_id":"hold08","category":"visual_action","text":"rabbit uses a vine as a jump rope","acceptable_scene_ids":["scene_0191"]}
+{"query_id":"hold09","category":"visual_action","text":"rabbit plants a leafy plant and looks angry","acceptable_scene_ids":["scene_0192"]}
+{"query_id":"hold10","category":"visual_action","text":"rabbit draws a bow and releases an arrow","acceptable_scene_ids":["scene_0196"]}
+{"query_id":"hold11","category":"visual_event","text":"peach falls onto a spiked wooden stake","acceptable_scene_ids":["scene_0204"]}
+{"query_id":"hold12","category":"visual_action","text":"large rabbit grabs a flying squirrel from a branch","acceptable_scene_ids":["scene_0206"]}
+{"query_id":"hold13","category":"hard_negative","text":"humanoid robot dancing in heavy rain","acceptable_scene_ids":[]}
+{"query_id":"hold14","category":"hard_negative","text":"woman driving a red convertible car","acceptable_scene_ids":[]}
+{"query_id":"hold15","category":"hard_negative","text":"dragon sleeping on a pile of gold coins","acceptable_scene_ids":[]}

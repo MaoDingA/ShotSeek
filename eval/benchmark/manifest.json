@@ -18,21 +18,47 @@
       "query_count": 40
     },
     "development-v1": {
-      "status": "pending_annotation",
-      "purpose": "independent material used for iteration"
+      "status": "frozen_pre_evaluation",
+      "purpose": "independent Sintel material used for iteration",
+      "query_path": "eval/benchmark/development-v1.jsonl",
+      "query_file_sha256": "da11c844db181b6525f5be6af2a78ff08ad70196c2915adf9b0038f63f4c3870",
+      "query_count": 15,
+      "positive_query_count": 12,
+      "negative_query_count": 3,
+      "material_start_ms": 734167,
+      "material_end_ms": 1622199
     },
     "holdout-v1": {
-      "status": "pending_annotation",
-      "purpose": "frozen independent material; never tune against results"
+      "status": "frozen_pre_evaluation",
+      "purpose": "frozen Big Buck Bunny material; never tune against results",
+      "query_path": "eval/benchmark/holdout-v1.jsonl",
+      "query_file_sha256": "a3efd3bf23ef5b230f29c01fa3f7095b90075e63edb362675c6e704adbd02b90",
+      "query_count": 15,
+      "positive_query_count": 12,
+      "negative_query_count": 3,
+      "material_start_ms": 1622199,
+      "material_end_ms": 2218672
     },
     "longform-v1": {
-      "status": "pending_annotation",
+      "status": "frozen_pre_evaluation",
       "material_status": "ready",
       "purpose": "continuous 30-43 minute material and temporal-boundary evaluation",
       "material_doc": "docs/materials/longform-v1.md",
       "source_type": "three-film Blender Open Movies compilation",
       "duration_ms": 2218672,
-      "source_video_sha256": "cdb46b849c57b8a70b326f3d9c95f6f72e189bf0d3a56438f54c73b9045c3b89"
+      "source_video_sha256": "cdb46b849c57b8a70b326f3d9c95f6f72e189bf0d3a56438f54c73b9045c3b89",
+      "database_sha256": "2fbbfd11c5d61a0ad8f329d91c46652a29b35cccf6cd3d75395b87ed1f30cd98",
+      "query_path": "eval/benchmark/longform-v1.jsonl",
+      "query_file_sha256": "ad915ba7e45516e7adfc001729e6681aeb87244e96102310e2134233d455767f",
+      "query_count": 20,
+      "positive_query_count": 15,
+      "negative_query_count": 5,
+      "temporal_reference_query_count": 5,
+      "annotation_method": [
+        "human review of scene summaries and preview frames",
+        "source-frame review at selected temporal in/out points"
+      ],
+      "annotation_limitation": "Scene IDs come from the generated timeline; five temporal ranges were visually checked but this is not a second-annotator study."
     }
   }
 }

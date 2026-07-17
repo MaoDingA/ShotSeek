@@ -1,0 +1,15 @@
+{"query_id":"dev01","category":"visual_object","text":"bladed staff beside a small fire","acceptable_scene_ids":["scene_0083"]}
+{"query_id":"dev02","category":"location_action","text":"red-haired woman walking through a dilapidated alley","acceptable_scene_ids":["scene_0087"]}
+{"query_id":"dev03","category":"visual_event","text":"injured small dragon on a rooftop","acceptable_scene_ids":["scene_0089"]}
+{"query_id":"dev04","category":"visual_event","text":"woman cleaning the injured dragon's wound","acceptable_scene_ids":["scene_0091"]}
+{"query_id":"dev05","category":"visual_event","text":"woman wakes on a bed beside a small creature","acceptable_scene_ids":["scene_0093"]}
+{"query_id":"dev06","category":"visual_event","text":"large horned dragon flies toward a woman on a rooftop","acceptable_scene_ids":["scene_0103"]}
+{"query_id":"dev07","category":"visual_event","text":"woman rides a dragon over a ruined city at sunset","acceptable_scene_ids":["scene_0104"]}
+{"query_id":"dev08","category":"location_action","text":"red-haired woman runs through a bamboo forest with red butterflies","acceptable_scene_ids":["scene_0110"]}
+{"query_id":"dev09","category":"visual_event","text":"woman fights a wolf-like creature in a rocky canyon","acceptable_scene_ids":["scene_0111"]}
+{"query_id":"dev10","category":"visual_object","text":"hand presses a glowing circular tree emblem","acceptable_scene_ids":["scene_0118"]}
+{"query_id":"dev11","category":"visual_event","text":"large dragon feeding on a carcass in a cave","acceptable_scene_ids":["scene_0122"]}
+{"query_id":"dev12","category":"visual_event","text":"woman discovers a small winged dragon on a stone platform","acceptable_scene_ids":["scene_0126"]}
+{"query_id":"dev13","category":"hard_negative","text":"astronaut planting a flag on the moon","acceptable_scene_ids":[]}
+{"query_id":"dev14","category":"hard_negative","text":"yellow submarine traveling underwater","acceptable_scene_ids":[]}
+{"query_id":"dev15","category":"hard_negative","text":"man playing a violin in a restaurant","acceptable_scene_ids":[]}

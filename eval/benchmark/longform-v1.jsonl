@@ -1,0 +1,20 @@
+{"query_id":"long01","category":"temporal_relation","text":"rocket engine exhaust ignition before woman shows robotic prosthetic arm on bridge","acceptable_scene_ids":["scene_0004"],"reference_start_ms":8920,"reference_end_ms":18400}
+{"query_id":"long02","category":"visual_event","text":"man with a cybernetic eye works on a preserved brain","acceptable_scene_ids":["scene_0012"]}
+{"query_id":"long03","category":"exact_dialogue","text":"\"Memory override in progress\"","acceptable_scene_ids":["scene_0030","scene_0031","scene_0032","scene_0033"]}
+{"query_id":"long04","category":"visual_action","text":"dark-skinned person aiming through a scoped rifle","acceptable_scene_ids":["scene_0025"]}
+{"query_id":"long05","category":"visual_event","text":"woman tends to an injured small dragon's wound","acceptable_scene_ids":["scene_0091"],"reference_start_ms":939160,"reference_end_ms":953600}
+{"query_id":"long06","category":"visual_event","text":"woman mounts a dragon and flies over the ruined city","acceptable_scene_ids":["scene_0104"],"reference_start_ms":1053160,"reference_end_ms":1073480}
+{"query_id":"long07","category":"visual_object","text":"hand presses a glowing circular emblem with a tree design","acceptable_scene_ids":["scene_0118"]}
+{"query_id":"long08","category":"visual_event","text":"injured red-haired woman sits on a cliff at sunset","acceptable_scene_ids":["scene_0144","scene_0145"]}
+{"query_id":"long09","category":"exact_dialogue","text":"\"This blade has a dark past\"","acceptable_scene_ids":["scene_0083","scene_0084","scene_0085"]}
+{"query_id":"long10","category":"visual_event","text":"green pear falls and strikes the rabbit's head","acceptable_scene_ids":["scene_0178"],"reference_start_ms":1799960,"reference_end_ms":1802720}
+{"query_id":"long11","category":"temporal_relation","text":"rabbit carves a spear before rabbit jumps rope","acceptable_scene_ids":["scene_0189"]}
+{"query_id":"long12","category":"temporal_relation","text":"peach lands on a spiked stake after flying squirrel jumps on rabbit's back","acceptable_scene_ids":["scene_0204"],"reference_start_ms":2039520,"reference_end_ms":2044080}
+{"query_id":"long13","category":"ordinal","text":"first rabbit holding a red apple","acceptable_scene_ids":["scene_0171"]}
+{"query_id":"long14","category":"visual_action","text":"rabbit uses a vine as a jump rope","acceptable_scene_ids":["scene_0191"]}
+{"query_id":"long15","category":"visual_action","text":"flying squirrel jumps onto the rabbit's back","acceptable_scene_ids":["scene_0203"]}
+{"query_id":"long16","category":"hard_negative","text":"astronaut walks on the moon carrying a flag","acceptable_scene_ids":[]}
+{"query_id":"long17","category":"hard_negative","text":"blue whale swims beneath a ship","acceptable_scene_ids":[]}
+{"query_id":"long18","category":"hard_negative","text":"pianist performs alone on a concert stage","acceptable_scene_ids":[]}
+{"query_id":"long19","category":"hard_negative","text":"bride and groom exchange rings at a wedding","acceptable_scene_ids":[]}
+{"query_id":"long20","category":"hard_negative","text":"spaceship lands in a desert","acceptable_scene_ids":[]}
