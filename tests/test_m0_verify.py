@@ -138,10 +138,10 @@ def test_verifier_keeps_missing_speaker_as_a_hard_failure() -> None:
     assert result["checks"]["report_gates_match_evidence"] is True
 
 
-def test_current_fixture_bundle_is_sanitized_but_not_falsely_marked_complete() -> None:
+def test_current_fixture_bundle_is_sanitized_and_live_derived() -> None:
     result = verify_fixture_bundle(PROJECT_ROOT)
     assert result["fixture_sanitized"] is True
-    assert result["fixture_live_derived"] is False
+    assert result["fixture_live_derived"] is True
 
 
 def test_fixture_updater_refuses_a_partial_live_run() -> None:

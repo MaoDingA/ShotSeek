@@ -215,7 +215,7 @@ Live 报告会逐项输出上述 Gate。只有所有 Gate 为 `true` 时，`m0_c
 - 未通过 Gate：`files_api_upload`、`speaker_info`；
 - 状态：`partial`，`m0_complete=false`。
 
-当前 M0 Live 仍保持 **BLOCKED**，原因已收敛为两个外部硬门槛：标准 Files API 上传证据，以及异步 ASR 说话人信息。SSE 真实时间戳和统一时间线已经通过，但不能用 SSE 替代完整 Files + speaker 验收。
+以上为 2026-07-16 的历史阻塞记录。额度恢复后已于 2026-07-17 完成标准 Files + 异步 ASR 的正式验收，当前状态见下方“完成记录”。
 
 
 ## 一键完成度审计
@@ -253,4 +253,22 @@ Live 报告会逐项输出上述 Gate。只有所有 Gate 为 `true` 时，`m0_c
   --run runs/m0/<run_id>
 ```
 
-`update_m0_fixtures.py` 会保留 ASR 的说话人和音频时间戳，只移除 file/task/session ID、服务端时间、URL、绝对路径和密钥。当前仓库中真实视觉/SSE Fixture 与尚未 Live 验证的 Files/异步 ASR 契约样本在 `fixture_provenance.sample.json` 中明确区分。
+`update_m0_fixtures.py` 会保留 ASR 的说话人和音频时间戳，只移除 file/task/session ID、服务端时间、URL、绝对路径和密钥。当前仓库的完整 Files、视觉与异步 ASR Fixture 均来自已通过的 Live 运行；历史契约样本仍在 `fixture_provenance.sample.json` 中单独标记。
+
+## 完成记录（2026-07-17）
+
+- Run ID：`20260717T031522.134383Z`；
+- 视频交付：Fresh 标准 Files 上传 + 同一 SHA256 黄金样片的真实视觉缓存；
+- Step 3.7：23 条结构化视觉事件；
+- StepAudio 2.5 异步 ASR：7 个分句，7/7 含有效毫秒时间戳与说话人；
+- 统一时间线：30 条证据，全部位于 `0 <= start_ms < end_ms <= 75000`；
+- Live 报告：9/9 内部 Gate 通过，`m0_complete=true`、`status=pass`；
+- 最终 Fixture：Files、视觉和异步 ASR 均从该 Live 运行脱敏生成；
+- 老师清单：15/15 通过；自动化测试：48 passed。
+
+正式验收命令：
+
+```bash
+.venv/bin/python scripts/verify_m0_completion.py \
+  --run runs/m0/20260717T031522.134383Z
+```

@@ -163,6 +163,8 @@ def test_asr_submit_and_poll_contract() -> None:
             return httpx.Response(200, json={"task_id": "task_contract_fixture"})
         query_count += 1
         if query_count == 1:
+            return httpx.Response(200, json={"status": "PENDING"})
+        if query_count == 2:
             return httpx.Response(200, json={"status": "RUNNING"})
         return httpx.Response(
             200,

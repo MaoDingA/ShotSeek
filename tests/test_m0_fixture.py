@@ -43,10 +43,10 @@ def test_fixture_mode_does_not_construct_an_http_client(monkeypatch: pytest.Monk
     assert report["status"] == "pass"
     assert report["metrics"]["cache_hit"] is True
     assert manifest["inputs"]["video_delivery"] == "fixture"
-    assert manifest["inputs"]["fixture_profile"] == "live_sse_plus_contract"
-    assert report["metrics"]["visual_event_count"] == 3
-    assert report["metrics"]["utterance_count"] == 10
-    assert len(evidence) == 13
+    assert manifest["inputs"]["fixture_profile"] == "complete_async"
+    assert report["metrics"]["visual_event_count"] == 23
+    assert report["metrics"]["utterance_count"] == 7
+    assert len(evidence) == 30
 
 
 def test_live_failure_preserves_completed_upload_stage(monkeypatch: pytest.MonkeyPatch) -> None:

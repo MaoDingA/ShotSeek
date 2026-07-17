@@ -15,6 +15,8 @@ from shotseek.schemas import Utterance, WordTimestamp
 from . import DEFAULT_ASR_BASE_URL, DEFAULT_ASR_MODEL
 from .http import request_with_retry
 
+IN_PROGRESS_STATUSES = frozenset({"PENDING", "RUNNING"})
+
 
 def _headers(api_key: str) -> dict[str, str]:
     if not api_key.strip():
@@ -119,7 +121,7 @@ def wait_for_asr(
             )
             raw = response.json()
             status = str(raw.get("status", "")).upper()
-            if status == "RUNNING":
+            if status in IN_PROGRESS_STATUSES:
                 if time.monotonic() >= deadline:
                     raise TimeoutError(f"ASR task {task_id} exceeded {timeout_s} seconds")
                 time.sleep(poll_interval_s)
@@ -130,6 +132,36 @@ def wait_for_asr(
     finally:
         if owns_client:
             http.close()
+
+
+def _normalize_words(
+    items: Any,
+    *,
+    utterance_start_ms: int,
+    utterance_end_ms: int,
+) -> list[WordTimestamp]:
+    if not isinstance(items, list):
+        return []
+    words: list[WordTimestamp] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        text = str(item.get("text", "")).strip()
+        start_raw = item.get("start_time")
+        end_raw = item.get("end_time")
+        if (
+            not text
+            or not isinstance(start_raw, int)
+            or isinstance(start_raw, bool)
+            or not isinstance(end_raw, int)
+            or isinstance(end_raw, bool)
+            or start_raw < utterance_start_ms
+            or end_raw > utterance_end_ms
+            or end_raw <= start_raw
+        ):
+            continue
+        words.append(WordTimestamp(text=text, start_ms=start_raw, end_ms=end_raw))
+    return words
 
 
 def normalize_asr_response(raw: dict[str, Any]) -> list[Utterance]:
@@ -151,26 +183,21 @@ def normalize_asr_response(raw: dict[str, Any]) -> list[Utterance]:
         speaker_id = None
         if isinstance(speaker, dict) and speaker.get("id") is not None:
             speaker_id = str(speaker["id"])
-        words = [
-            WordTimestamp(
-                text=str(word["text"]),
-                start_ms=int(word["start_time"]),
-                end_ms=int(word["end_time"]),
-            )
-            for word in item.get("words", [])
-            if isinstance(word, dict)
-            and str(word.get("text", "")).strip()
-            and "start_time" in word
-            and "end_time" in word
-        ]
         text = str(item.get("text", "")).strip()
         if not text:
             continue
+        start_ms = int(item["start_time"])
+        end_ms = int(item["end_time"])
+        words = _normalize_words(
+            item.get("words"),
+            utterance_start_ms=start_ms,
+            utterance_end_ms=end_ms,
+        )
         utterances.append(
             Utterance(
                 utterance_id=f"utterance_{index:04d}",
-                start_ms=int(item["start_time"]),
-                end_ms=int(item["end_time"]),
+                start_ms=start_ms,
+                end_ms=end_ms,
                 text=text,
                 speaker_id=speaker_id,
                 words=words,

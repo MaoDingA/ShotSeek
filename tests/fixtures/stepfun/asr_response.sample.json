@@ -1,0 +1,358 @@
+{
+  "result": {
+    "duration": 75.02475,
+    "result": [
+      {
+        "text": "英语> Memory override in progress.英语>You're a jerk, Tom.We have to follow our passions.You have your robotics.英语 I just want to be awesome in space.Why don't you just admit that you're freaked out by my robot hand?英语 But there's no reason to destroy the world.",
+        "utterances": [
+          {
+            "end_time": 6493,
+            "speaker": {
+              "id": "speaker_0"
+            },
+            "start_time": 4692,
+            "text": "英语> Memory override in progress.",
+            "words": [
+              {
+                "end_time": 4852,
+                "start_time": 4772,
+                "text": "英"
+              },
+              {
+                "end_time": 5092,
+                "start_time": 5012,
+                "text": "语> "
+              },
+              {
+                "end_time": 5652,
+                "start_time": 5092,
+                "text": "Memory "
+              },
+              {
+                "end_time": 6292,
+                "start_time": 5652,
+                "text": "override "
+              },
+              {
+                "end_time": 6372,
+                "start_time": 6372,
+                "text": "in "
+              },
+              {
+                "end_time": 6372,
+                "start_time": 6372,
+                "text": "progress."
+              }
+            ]
+          },
+          {
+            "end_time": 8692,
+            "speaker": {
+              "id": "speaker_1"
+            },
+            "start_time": 7173,
+            "text": "英语>You're a jerk, Tom.",
+            "words": [
+              {
+                "end_time": 7333,
+                "start_time": 7253,
+                "text": "英"
+              },
+              {
+                "end_time": 7573,
+                "start_time": 7573,
+                "text": "语>"
+              },
+              {
+                "end_time": 7973,
+                "start_time": 7733,
+                "text": "You're "
+              },
+              {
+                "end_time": 7973,
+                "start_time": 7973,
+                "text": "a "
+              },
+              {
+                "end_time": 8293,
+                "start_time": 7973,
+                "text": "jerk, "
+              },
+              {
+                "end_time": 8293,
+                "start_time": 8293,
+                "text": "Tom."
+              }
+            ]
+          },
+          {
+            "end_time": 28453,
+            "speaker": {
+              "id": "speaker_0"
+            },
+            "start_time": 26312,
+            "text": "We have to follow our passions.",
+            "words": [
+              {
+                "end_time": 26472,
+                "start_time": 26392,
+                "text": "We "
+              },
+              {
+                "end_time": 26792,
+                "start_time": 26472,
+                "text": "have "
+              },
+              {
+                "end_time": 26872,
+                "start_time": 26792,
+                "text": "to "
+              },
+              {
+                "end_time": 27272,
+                "start_time": 26872,
+                "text": "follow "
+              },
+              {
+                "end_time": 27432,
+                "start_time": 27272,
+                "text": "our "
+              },
+              {
+                "end_time": 28312,
+                "start_time": 27432,
+                "text": "passions."
+              }
+            ]
+          },
+          {
+            "end_time": 30913,
+            "speaker": {
+              "id": "speaker_0"
+            },
+            "start_time": 29312,
+            "text": "You have your robotics.",
+            "words": [
+              {
+                "end_time": 29552,
+                "start_time": 29392,
+                "text": "You "
+              },
+              {
+                "end_time": 29792,
+                "start_time": 29552,
+                "text": "have "
+              },
+              {
+                "end_time": 29872,
+                "start_time": 29792,
+                "text": "your "
+              },
+              {
+                "end_time": 30752,
+                "start_time": 29952,
+                "text": "robotics."
+              }
+            ]
+          },
+          {
+            "end_time": 35892,
+            "speaker": {
+              "id": "speaker_0"
+            },
+            "start_time": 33733,
+            "text": "英语 I just want to be awesome in space.",
+            "words": [
+              {
+                "end_time": 33893,
+                "start_time": 33893,
+                "text": "英"
+              },
+              {
+                "end_time": 33893,
+                "start_time": 33893,
+                "text": "语 "
+              },
+              {
+                "end_time": 33973,
+                "start_time": 33973,
+                "text": "I "
+              },
+              {
+                "end_time": 34213,
+                "start_time": 33973,
+                "text": "just "
+              },
+              {
+                "end_time": 34453,
+                "start_time": 34213,
+                "text": "want "
+              },
+              {
+                "end_time": 34453,
+                "start_time": 34453,
+                "text": "to "
+              },
+              {
+                "end_time": 34693,
+                "start_time": 34453,
+                "text": "be "
+              },
+              {
+                "end_time": 35093,
+                "start_time": 34693,
+                "text": "awesome "
+              },
+              {
+                "end_time": 35173,
+                "start_time": 35093,
+                "text": "in "
+              },
+              {
+                "end_time": 35733,
+                "start_time": 35173,
+                "text": "space."
+              }
+            ]
+          },
+          {
+            "end_time": 58032,
+            "speaker": {
+              "id": "speaker_1"
+            },
+            "start_time": 54993,
+            "text": "Why don't you just admit that you're freaked out by my robot hand?",
+            "words": [
+              {
+                "end_time": 55153,
+                "start_time": 54993,
+                "text": "Why "
+              },
+              {
+                "end_time": 55313,
+                "start_time": 55153,
+                "text": "don't "
+              },
+              {
+                "end_time": 55473,
+                "start_time": 55393,
+                "text": "you "
+              },
+              {
+                "end_time": 55793,
+                "start_time": 55553,
+                "text": "just "
+              },
+              {
+                "end_time": 56033,
+                "start_time": 55793,
+                "text": "admit "
+              },
+              {
+                "end_time": 56193,
+                "start_time": 56033,
+                "text": "that "
+              },
+              {
+                "end_time": 56273,
+                "start_time": 56193,
+                "text": "you're "
+              },
+              {
+                "end_time": 56673,
+                "start_time": 56273,
+                "text": "freaked "
+              },
+              {
+                "end_time": 56833,
+                "start_time": 56673,
+                "text": "out "
+              },
+              {
+                "end_time": 56993,
+                "start_time": 56833,
+                "text": "by "
+              },
+              {
+                "end_time": 57233,
+                "start_time": 57073,
+                "text": "my "
+              },
+              {
+                "end_time": 57553,
+                "start_time": 57233,
+                "text": "robot "
+              },
+              {
+                "end_time": 57873,
+                "start_time": 57553,
+                "text": "hand?"
+              }
+            ]
+          },
+          {
+            "end_time": 70933,
+            "speaker": {
+              "id": "speaker_0"
+            },
+            "start_time": 69133,
+            "text": "英语 But there's no reason to destroy the world.",
+            "words": [
+              {
+                "text": "英"
+              },
+              {
+                "end_time": 69213,
+                "start_time": 69133,
+                "text": "语 "
+              },
+              {
+                "end_time": 69293,
+                "start_time": 69213,
+                "text": "But "
+              },
+              {
+                "end_time": 69453,
+                "start_time": 69293,
+                "text": "there's "
+              },
+              {
+                "end_time": 69613,
+                "start_time": 69453,
+                "text": "no "
+              },
+              {
+                "end_time": 69853,
+                "start_time": 69613,
+                "text": "reason "
+              },
+              {
+                "end_time": 69933,
+                "start_time": 69933,
+                "text": "to "
+              },
+              {
+                "end_time": 70333,
+                "start_time": 69933,
+                "text": "destroy "
+              },
+              {
+                "end_time": 70493,
+                "start_time": 70333,
+                "text": "the "
+              },
+              {
+                "end_time": 70813,
+                "start_time": 70573,
+                "text": "world."
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "submit": {
+    "task_id": "task_id_fixture_redacted"
+  }
+}

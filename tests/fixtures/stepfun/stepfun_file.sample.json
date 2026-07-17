@@ -1,0 +1,19 @@
+{
+  "final": {
+    "bytes": 4872315,
+    "created_at": 0,
+    "filename": "golden-stepfun.mp4",
+    "id": "file_fixture_redacted",
+    "object": "file",
+    "purpose": "storage",
+    "status": "success"
+  },
+  "upload": {
+    "bytes": 4872315,
+    "created_at": 0,
+    "filename": "golden-stepfun.mp4",
+    "id": "file_fixture_redacted",
+    "object": "file",
+    "purpose": "storage"
+  }
+}

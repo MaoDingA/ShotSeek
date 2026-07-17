@@ -145,6 +145,41 @@ def normalize_vision_response(
     return events
 
 
+def normalize_vision_bundle(
+    raw: dict[str, Any],
+    *,
+    model: str,
+) -> list[VisualEvent]:
+    """Normalize either one response or the recorded multi-chunk response envelope."""
+    if raw.get("mode") != "direct_url_chunks":
+        return normalize_vision_response(raw, model=model)
+    chunks = raw.get("chunks")
+    if not isinstance(chunks, list) or not chunks:
+        raise ValueError("multi-chunk vision response must include a non-empty chunks array")
+    events: list[VisualEvent] = []
+    for chunk in chunks:
+        if not isinstance(chunk, dict) or not isinstance(chunk.get("response"), dict):
+            raise ValueError("every vision chunk must include a response object")
+        chunk_id = str(chunk.get("chunk_id", "")).strip()
+        if not chunk_id:
+            raise ValueError("every vision chunk must include chunk_id")
+        try:
+            source_start_ms = int(chunk["source_start_ms"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError(
+                "every vision chunk must include an integer source_start_ms"
+            ) from exc
+        events.extend(
+            normalize_vision_response(
+                chunk["response"],
+                model=model,
+                chunk_id_override=chunk_id,
+                source_start_ms=source_start_ms,
+            )
+        )
+    return events
+
+
 def analyze_video(
     file_uri: str,
     *,

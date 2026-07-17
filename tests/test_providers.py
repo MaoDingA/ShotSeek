@@ -84,7 +84,10 @@ def test_asr_response_preserves_speaker_and_words() -> None:
                         "end_time": 1000,
                         "speaker": {"id": "spk_1"},
                         "words": [
-                            {"text": "Hello", "start_time": 100, "end_time": 900}
+                            {"text": "Hello", "start_time": 100, "end_time": 900},
+                            {"text": "zero", "start_time": 900, "end_time": 900},
+                            {"text": "missing", "start_time": None, "end_time": None},
+                            {"text": "outside", "start_time": 50, "end_time": 150},
                         ],
                     }
                 ],
@@ -94,3 +97,4 @@ def test_asr_response_preserves_speaker_and_words() -> None:
     utterances = normalize_asr_response(raw)
     assert utterances[0].speaker_id == "spk_1"
     assert utterances[0].words[0].text == "Hello"
+    assert len(utterances[0].words) == 1

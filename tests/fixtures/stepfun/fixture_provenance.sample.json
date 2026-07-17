@@ -4,6 +4,13 @@
     "live_derived": false,
     "reason": "standard async ASR quota unavailable"
   },
+  "asr_response.sample.json": {
+    "generated_at": "2026-07-17T03:16:04.388279+00:00",
+    "kind": "sanitized_live_response",
+    "live_derived": true,
+    "provider": "stepfun",
+    "source_run_id": "20260717T031522.134383Z"
+  },
   "asr_sse_response.sample.json": {
     "kind": "sanitized_live_response",
     "live_derived": true,
@@ -20,13 +27,18 @@
     "live_derived": false,
     "reason": "standard Files API quota unavailable"
   },
-  "vision_response.sample.json": {
+  "stepfun_file.sample.json": {
+    "generated_at": "2026-07-17T03:16:04.388279+00:00",
     "kind": "sanitized_live_response",
     "live_derived": true,
     "provider": "stepfun",
-    "sanitized_fields": [
-      "id",
-      "created"
-    ]
+    "source_run_id": "20260717T031522.134383Z"
+  },
+  "vision_response.sample.json": {
+    "generated_at": "2026-07-17T03:16:04.388279+00:00",
+    "kind": "sanitized_live_response",
+    "live_derived": true,
+    "provider": "stepfun",
+    "source_run_id": "20260717T031522.134383Z"
   }
 }

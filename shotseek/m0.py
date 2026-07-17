@@ -32,7 +32,7 @@ from shotseek.providers.stepfun.vision import (
     VISION_SCHEMA_VERSION,
     VisionResponseError,
     analyze_video,
-    normalize_vision_response,
+    normalize_vision_bundle,
 )
 from shotseek.schemas import (
     RunManifest,
@@ -347,9 +347,7 @@ def run_probe(
                 )
                 vision_raw = _json_load(fixture_dir / "vision_response.sample.json")
                 asr_raw = _json_load(fixture_dir / "asr_response.sample.json")
-                visual_events = normalize_vision_response(
-                    vision_raw, model=vision_model
-                )
+                visual_events = normalize_vision_bundle(vision_raw, model=vision_model)
                 utterances = normalize_asr_response(asr_raw["result"])
             else:
                 stepfun_file_raw = _json_load(
@@ -357,9 +355,7 @@ def run_probe(
                 )
                 vision_raw = _json_load(fixture_dir / "vision_response.sample.json")
                 asr_raw = _json_load(fixture_dir / "asr_sse_response.sample.json")
-                visual_events = normalize_vision_response(
-                    vision_raw, model=vision_model
-                )
+                visual_events = normalize_vision_bundle(vision_raw, model=vision_model)
                 utterances = normalize_sse_events(asr_raw["events"])
             _json_dump(raw_dir / "stepfun_file.json", stepfun_file_raw)
             _json_dump(raw_dir / "vision_response.json", vision_raw)

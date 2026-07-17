@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 
 from shotseek.providers.stepfun.asr_sse import normalize_sse_events
-from shotseek.providers.stepfun.vision import normalize_vision_response
+from shotseek.providers.stepfun.vision import normalize_vision_bundle
 from shotseek.timeline.normalize import normalize_timeline
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -37,7 +37,7 @@ def test_same_fixture_produces_the_same_timeline() -> None:
     )
 
     def produce() -> list[dict[str, object]]:
-        events = normalize_vision_response(vision_raw, model="step-3.7-flash")
+        events = normalize_vision_bundle(vision_raw, model="step-3.7-flash")
         utterances = normalize_sse_events(asr_raw["events"])
         return [
             item.model_dump(mode="json")
