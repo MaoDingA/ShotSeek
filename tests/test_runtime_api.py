@@ -77,3 +77,15 @@ def test_upload_rejects_invalid_or_empty_body(tmp_path: Path) -> None:
             content=b"",
         )
         assert empty.status_code == 400
+
+
+def test_built_workbench_is_served_from_runtime(tmp_path: Path) -> None:
+    app = _app(tmp_path)
+    with TestClient(app) as client:
+        response = client.get("/")
+        assert response.status_code == 200
+        assert "ShotSeek" in response.text
+        asset = next(
+            path.name for path in (Path(__file__).resolve().parents[1] / "shotseek" / "runtime" / "static" / "assets").glob("*.css")
+        )
+        assert client.get(f"/assets/{asset}").status_code == 200

@@ -51,6 +51,7 @@ class RuntimeWorker:
         self.poll_interval = poll_interval
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
+        self.last_error: str | None = None
 
     @staticmethod
     def _stage_progress(stage: JobState, fraction: float = 1.0) -> float:
@@ -162,7 +163,14 @@ class RuntimeWorker:
 
     def run_forever(self) -> None:
         while not self._stop.is_set():
-            if self.run_once() is None:
+            try:
+                result = self.run_once()
+                self.last_error = None
+            except Exception as error:
+                self.last_error = f"{type(error).__name__}: {error}"
+                self._stop.wait(self.poll_interval)
+                continue
+            if result is None:
                 self._stop.wait(self.poll_interval)
 
     def start(self, *, recover: bool = True) -> None:

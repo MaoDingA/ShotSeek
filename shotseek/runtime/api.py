@@ -4,13 +4,15 @@ from __future__ import annotations
 
 import asyncio
 import json
+import mimetypes
 import sqlite3
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import AsyncIterator, Literal
 
 from fastapi import FastAPI, HTTPException, Query, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
 
 from shotseek.agent import ShotSeekAgent
@@ -51,6 +53,38 @@ def _load_optional_json(path: Path, default: object) -> object:
     if not path.is_file():
         return default
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _byte_range(value: str | None, size: int) -> tuple[int, int] | None:
+    if not value:
+        return None
+    if not value.startswith("bytes=") or "," in value:
+        raise ValueError("unsupported byte range")
+    start_text, separator, end_text = value[6:].partition("-")
+    if not separator:
+        raise ValueError("invalid byte range")
+    if not start_text:
+        length = int(end_text)
+        if length <= 0:
+            raise ValueError("invalid suffix range")
+        return max(0, size - length), size - 1
+    start = int(start_text)
+    end = int(end_text) if end_text else size - 1
+    if start < 0 or start >= size or end < start:
+        raise ValueError("range is outside the file")
+    return start, min(end, size - 1)
+
+
+def _file_chunks(path: Path, start: int, end: int):
+    with path.open("rb") as handle:
+        handle.seek(start)
+        remaining = end - start + 1
+        while remaining:
+            block = handle.read(min(1024 * 1024, remaining))
+            if not block:
+                return
+            remaining -= len(block)
+            yield block
 
 
 def _job_payload(registry: RuntimeRegistry, job_id: str) -> dict:
@@ -119,6 +153,7 @@ def create_runtime_app(
             "service": "shotseek-runtime",
             "schema_version": "m3-runtime-api-v1",
             "worker_enabled": worker is not None,
+            "worker_error": worker.last_error if worker is not None else None,
             "project_root": str(paths.project_root),
             "registry": diagnostics,
         }
@@ -149,6 +184,51 @@ def create_runtime_app(
             raise HTTPException(status_code=404, detail="video not found")
         return video.model_dump(mode="json")
 
+    @app.get("/api/v1/videos/{video_id}/media")
+    def get_video_media(
+        video_id: str,
+        request: Request,
+        kind: Literal["proxy", "source"] = Query(default="proxy"),
+    ) -> StreamingResponse:
+        video = registry.get_video(video_id)
+        if video is None:
+            raise HTTPException(status_code=404, detail="video not found")
+        relative = video.proxy_path if kind == "proxy" else video.source_path
+        if not relative:
+            raise HTTPException(status_code=409, detail=f"{kind} media is unavailable")
+        media_path = ensure_within_project(
+            paths.project_root,
+            paths.project_root / relative,
+        )
+        if not media_path.is_file():
+            raise HTTPException(status_code=404, detail="media file not found")
+        size = media_path.stat().st_size
+        try:
+            requested = _byte_range(request.headers.get("range"), size)
+        except (ValueError, TypeError):
+            raise HTTPException(
+                status_code=416,
+                detail="range not satisfiable",
+                headers={"Content-Range": f"bytes */{size}"},
+            )
+        start, end = requested or (0, size - 1)
+        headers = {
+            "Accept-Ranges": "bytes",
+            "Content-Length": str(end - start + 1),
+            "Cache-Control": "private, max-age=3600",
+        }
+        status_code = 200
+        if requested is not None:
+            status_code = 206
+            headers["Content-Range"] = f"bytes {start}-{end}/{size}"
+        media_type = mimetypes.guess_type(media_path.name)[0] or "application/octet-stream"
+        return StreamingResponse(
+            _file_chunks(media_path, start, end),
+            status_code=status_code,
+            media_type=media_type,
+            headers=headers,
+        )
+
     @app.get("/api/v1/videos/{video_id}/scenes")
     def list_scenes(video_id: str) -> dict:
         _, database = ready_database(video_id)
@@ -165,6 +245,26 @@ def create_runtime_app(
         if item is None:
             raise HTTPException(status_code=404, detail="scene not found")
         return item
+
+    @app.get("/api/v1/videos/{video_id}/scenes/{scene_id}/preview")
+    def get_scene_preview(video_id: str, scene_id: str) -> FileResponse:
+        _, database = ready_database(video_id)
+        exists = any(
+            scene["scene_id"] == scene_id for scene in _database_scenes(database)
+        )
+        if not exists:
+            raise HTTPException(status_code=404, detail="scene not found")
+        preview = ensure_within_project(
+            paths.project_root,
+            paths.video_root(video_id) / "previews" / f"{scene_id}.jpg",
+        )
+        if not preview.is_file():
+            raise HTTPException(status_code=404, detail="scene preview not found")
+        return FileResponse(
+            preview,
+            media_type="image/jpeg",
+            headers={"Cache-Control": "private, max-age=86400"},
+        )
 
     @app.get("/api/v1/videos/{video_id}/scenes/{scene_id}/evidence")
     def get_scene_evidence(video_id: str, scene_id: str) -> dict:
@@ -350,5 +450,23 @@ def create_runtime_app(
             "video": video.model_dump(mode="json") if video else None,
             "artifacts": [item.model_dump(mode="json") for item in artifacts],
         }
+
+    static_root = ensure_within_project(
+        paths.project_root,
+        paths.project_root / "shotseek" / "runtime" / "static",
+    )
+    static_index = static_root / "index.html"
+    static_assets = static_root / "assets"
+    if static_index.is_file():
+        if static_assets.is_dir():
+            app.mount(
+                "/assets",
+                StaticFiles(directory=static_assets),
+                name="shotseek-assets",
+            )
+
+        @app.get("/", include_in_schema=False)
+        def workbench() -> FileResponse:
+            return FileResponse(static_index, media_type="text/html")
 
     return app

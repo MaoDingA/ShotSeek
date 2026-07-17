@@ -108,6 +108,14 @@ def test_fixture_pipeline_builds_real_media_artifacts_and_search_index(
         scenes = client.get(f"/api/v1/videos/{video.video_id}/scenes")
         assert scenes.status_code == 200
         assert scenes.json()["count"] >= 1
+        media = client.get(
+            f"/api/v1/videos/{video.video_id}/media",
+            headers={"range": "bytes=0-99"},
+        )
+        assert media.status_code == 206
+        assert len(media.content) == 100
+        assert media.headers["accept-ranges"] == "bytes"
+        assert media.headers["content-range"].startswith("bytes 0-99/")
         search = client.post(
             f"/api/v1/videos/{video.video_id}/search",
             json={
@@ -119,6 +127,11 @@ def test_fixture_pipeline_builds_real_media_artifacts_and_search_index(
         assert search.status_code == 200
         assert search.json()["hits"]
         scene_id = search.json()["hits"][0]["candidate"]["scene_id"]
+        preview = client.get(
+            f"/api/v1/videos/{video.video_id}/scenes/{scene_id}/preview"
+        )
+        assert preview.status_code == 200
+        assert preview.headers["content-type"].startswith("image/jpeg")
         evidence = client.get(
             f"/api/v1/videos/{video.video_id}/scenes/{scene_id}/evidence"
         )

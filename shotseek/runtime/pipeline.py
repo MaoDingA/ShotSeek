@@ -115,7 +115,7 @@ class ProductionPipeline:
 
     def _root(self, video_id: str) -> Path:
         root = self.paths.video_root(video_id)
-        for name in ("media", "chunks", "evidence", "timeline", "index", "raw"):
+        for name in ("media", "chunks", "evidence", "timeline", "index", "raw", "previews"):
             (root / name).mkdir(parents=True, exist_ok=True)
         return root
 
@@ -596,11 +596,34 @@ class ProductionPipeline:
         audit = validate_scene_references(scenes, aligned, utterances, shots)
         if not audit["pass"]:
             raise RuntimeError("scene reference audit failed")
+        previews = []
+        for index, scene in enumerate(scenes, start=1):
+            preview = root / "previews" / f"{scene.scene_id}.jpg"
+            if not preview.is_file():
+                partial = preview.with_name(f".{preview.name}.part.jpg")
+                partial.unlink(missing_ok=True)
+                midpoint_ms = scene.start_ms + (scene.end_ms - scene.start_ms) // 2
+                self._run_ffmpeg([
+                    "-y", "-ss", f"{midpoint_ms / 1000:.3f}",
+                    "-i", str(root / "media" / "proxy.mp4"),
+                    "-frames:v", "1", "-vf", "scale=480:-2",
+                    "-q:v", "3", str(partial),
+                ])
+                partial.replace(preview)
+            previews.append({
+                "scene_id": scene.scene_id,
+                "timestamp_ms": scene.start_ms + (scene.end_ms - scene.start_ms) // 2,
+                "path": self._relative(preview),
+            })
+            progress(index, len(scenes), f"生成场景预览 {index}/{len(scenes)}")
         scenes_path = root / "timeline" / "scenes.json"
         audit_path = root / "timeline" / "scene_audit.json"
+        preview_manifest = root / "previews" / "manifest.json"
         _dump_json(scenes_path, [item.model_dump(mode="json") for item in scenes])
         _dump_json(audit_path, audit)
+        _dump_json(preview_manifest, {"schema_version": PIPELINE_VERSION, "items": previews})
         self._record_artifact(video, kind="scenes", path=scenes_path)
+        self._record_artifact(video, kind="previews", path=preview_manifest)
         progress(1, 1, f"构建 {len(scenes)} 个证据场景")
         return StageResult(
             message=f"Scene 构建完成：{len(scenes)} 个",

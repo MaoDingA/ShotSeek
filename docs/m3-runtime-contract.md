@@ -52,14 +52,20 @@ POST /api/v1/jobs/{job_id}/cancel
 
 GET  /api/v1/videos
 GET  /api/v1/videos/{video_id}
+GET  /api/v1/videos/{video_id}/media
 GET  /api/v1/videos/{video_id}/scenes
 GET  /api/v1/videos/{video_id}/scenes/{scene_id}
+GET  /api/v1/videos/{video_id}/scenes/{scene_id}/preview
 GET  /api/v1/videos/{video_id}/scenes/{scene_id}/evidence
 POST /api/v1/videos/{video_id}/search
 ```
 
 `events` 使用 Server-Sent Events，事件 ID 对应 SQLite 的递增 `event_id`；客户
 端断线后可使用 `after` 继续读取。非 `READY/PARTIAL` 任务访问结果返回 `409`。
+
+`media` 支持标准单段 HTTP Range 请求并返回 `206`、`Accept-Ranges`、
+`Content-Range` 和准确的 `Content-Length`，浏览器可以直接拖动长视频。Scene
+预览由时间线中点抽帧生成，不依赖前端硬编码图片。
 
 ## 媒体与证据流水线
 
@@ -107,6 +113,27 @@ shotseek-runtime --project-root /home/phenom8000/model/spark --mode live
 ```
 
 密钥只从环境读取，不写入 Job、Artifact、日志或模型缓存。
+
+## 工作台构建与浏览器验收
+
+React、TypeScript 与 Vite 源码位于 `apps/web/`。生产构建输出到
+`shotseek/runtime/static/`，FastAPI 在根路径直接托管，因此部署 Runtime 不要求
+目标机器另外运行 Node 服务。
+
+```bash
+cd apps/web
+npm install
+npm run typecheck
+npm run build
+```
+
+在 Runtime 已启动且存在 READY 视频时，可执行真实 Chromium 端到端检查：
+
+```bash
+npm run e2e
+```
+
+测试必须完成查询输入、结果卡、关键帧、证据抽屉和 shot-first 边界页验证。
 
 ## 当前验收门
 
