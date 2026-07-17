@@ -1,0 +1,33 @@
+{
+  "schema_version": "shotseek-benchmark-manifest-v1",
+  "updated_at": "2026-07-17",
+  "splits": {
+    "regression-golden-v1": {
+      "status": "frozen",
+      "purpose": "M0-M2 deterministic regression only; not generalization evidence",
+      "source_video_sha256": "9a11b716f750bd61f081c47f2195ca3fdacf8b098891d862c273bfd172c50aa8",
+      "duration_ms": 75000,
+      "query_paths": [
+        "eval/m1_queries.jsonl",
+        "eval/m2_queries.jsonl"
+      ],
+      "query_file_sha256": {
+        "eval/m1_queries.jsonl": "b48d83ac0fbec5c780a34e9c9eb6bdb80ba93b9568d28b2cd8cae46ddbe00705",
+        "eval/m2_queries.jsonl": "3f59d6a2bdd536ff29e82e56cb2fb6e83eda5a602668394da57a37a357cc3906"
+      },
+      "query_count": 40
+    },
+    "development-v1": {
+      "status": "pending_annotation",
+      "purpose": "independent material used for iteration"
+    },
+    "holdout-v1": {
+      "status": "pending_annotation",
+      "purpose": "frozen independent material; never tune against results"
+    },
+    "longform-v1": {
+      "status": "pending_annotation",
+      "purpose": "continuous 30-43 minute material and temporal-boundary evaluation"
+    }
+  }
+}
