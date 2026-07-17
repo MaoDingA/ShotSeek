@@ -1,0 +1,15 @@
+{"query_id":"q01","category":"exact_dialogue","text":"\"Memory override in progress\"","acceptable_scene_ids":["scene_0002"]}
+{"query_id":"q02","category":"exact_dialogue","text":"\"We have to follow our passions\"","acceptable_scene_ids":["scene_0009"]}
+{"query_id":"q03","category":"exact_dialogue","text":"\"I just want to be awesome in space\"","acceptable_scene_ids":["scene_0011"]}
+{"query_id":"q04","category":"exact_dialogue","text":"\"But there's no reason to destroy the world\"","acceptable_scene_ids":["scene_0021"]}
+{"query_id":"q05","category":"visual","text":"large mechanical quadruped robot outdoors","acceptable_scene_ids":["scene_0003"]}
+{"query_id":"q06","category":"visual","text":"person aiming scoped rifle behind white balusters","acceptable_scene_ids":["scene_0015"]}
+{"query_id":"q07","category":"visual","text":"man with mechanical ocular implant speaking","acceptable_scene_ids":["scene_0016"]}
+{"query_id":"q08","category":"visual","text":"室内的军装女人","acceptable_scene_ids":["scene_0023"]}
+{"query_id":"q09","category":"multimodal","text":"\"You're a jerk, Tom\" large mechanical robot","acceptable_scene_ids":["scene_0003"]}
+{"query_id":"q10","category":"multimodal","text":"\"Why don't you just admit\" woman distressed outdoors","acceptable_scene_ids":["scene_0017"]}
+{"query_id":"q11","category":"multimodal","text":"\"But there's no reason\" robotic hand woman","acceptable_scene_ids":["scene_0022"]}
+{"query_id":"q12","category":"temporal","text":"first young man looking to the right outdoors","acceptable_scene_ids":["scene_0008"]}
+{"query_id":"q13","category":"temporal","text":"mechanical ocular implant after scoped rifle","acceptable_scene_ids":["scene_0016"]}
+{"query_id":"q14","category":"negative","text":"\"the spaceship has landed\"","acceptable_scene_ids":[]}
+{"query_id":"q15","category":"negative","text":"red dragon breathing fire","acceptable_scene_ids":[]}
