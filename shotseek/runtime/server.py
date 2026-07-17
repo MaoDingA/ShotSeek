@@ -22,6 +22,20 @@ def build_parser() -> argparse.ArgumentParser:
         default=os.environ.get("SHOTSEEK_RUNTIME_MODE", "fixture"),
         help="fixture is deterministic and visibly cached; live calls StepFun",
     )
+    parser.add_argument(
+        "--chunk-duration-seconds",
+        type=int,
+        choices=range(1, 61),
+        default=int(os.environ.get("SHOTSEEK_CHUNK_DURATION_SECONDS", "30")),
+        metavar="1-60",
+    )
+    parser.add_argument(
+        "--vision-workers",
+        type=int,
+        choices=range(1, 5),
+        default=int(os.environ.get("SHOTSEEK_VISION_WORKERS", "3")),
+        metavar="1-4",
+    )
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--reload", action="store_true")
@@ -35,7 +49,12 @@ def main() -> None:
     if not (project_root / "pyproject.toml").is_file():
         raise SystemExit(f"not a ShotSeek project root: {project_root}")
     api_key = os.environ.get("STEPFUN_API_KEY") or os.environ.get("STEP_API_KEY")
-    settings = PipelineSettings(mode=args.mode, api_key=api_key)
+    settings = PipelineSettings(
+        mode=args.mode,
+        api_key=api_key,
+        chunk_duration_ms=args.chunk_duration_seconds * 1_000,
+        vision_workers=args.vision_workers,
+    )
     app = create_runtime_app(
         project_root=project_root,
         runtime_root=args.runtime_root,

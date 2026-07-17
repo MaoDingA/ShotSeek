@@ -9,6 +9,35 @@ from fastapi.testclient import TestClient
 from shotseek.runtime import JobState, RuntimePaths, RuntimeRegistry, RuntimeWorker, store_upload
 from shotseek.runtime.api import create_runtime_app
 from shotseek.runtime.pipeline import PipelineSettings, ProductionPipeline
+from shotseek.runtime.server import build_parser
+
+
+def test_pipeline_settings_use_production_chunk_defaults() -> None:
+    settings = PipelineSettings()
+    assert settings.chunk_duration_ms == 30_000
+    assert settings.vision_workers == 3
+    assert PipelineSettings(chunk_duration_ms=60_000).chunk_duration_ms == 60_000
+    with pytest.raises(ValueError, match="1-60 seconds"):
+        PipelineSettings(chunk_duration_ms=60_001)
+
+
+def test_runtime_parser_exposes_chunk_and_worker_controls(monkeypatch) -> None:
+    monkeypatch.delenv("SHOTSEEK_CHUNK_DURATION_SECONDS", raising=False)
+    monkeypatch.delenv("SHOTSEEK_VISION_WORKERS", raising=False)
+    defaults = build_parser().parse_args([])
+    assert defaults.chunk_duration_seconds == 30
+    assert defaults.vision_workers == 3
+
+    selected = build_parser().parse_args(
+        [
+            "--chunk-duration-seconds",
+            "60",
+            "--vision-workers",
+            "4",
+        ]
+    )
+    assert selected.chunk_duration_seconds == 60
+    assert selected.vision_workers == 4
 
 
 def _generate_video(path: Path) -> None:

@@ -6,6 +6,8 @@ import hashlib
 import json
 import os
 import subprocess
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from fractions import Fraction
 from pathlib import Path
@@ -51,10 +53,11 @@ class PipelineSettings:
     proxy_height: int = 720
     proxy_fps: int = 25
     proxy_bitrate: str = "3M"
-    chunk_duration_ms: int = 10_000
+    chunk_duration_ms: int = 30_000
     chunk_max_bytes: int = 110 * 1024 * 1024
     shot_threshold: float = 0.30
     shot_min_gap_frames: int = 6
+    vision_workers: int = 3
     reasoning_effort: Literal["low", "medium"] = "low"
     vision_model: str = DEFAULT_VISION_MODEL
     asr_model: str = DEFAULT_ASR_MODEL
@@ -62,15 +65,17 @@ class PipelineSettings:
     def __post_init__(self) -> None:
         if self.mode == "live" and not (self.api_key or "").strip():
             raise ValueError("live pipeline requires a StepFun API key")
-        if not 1_000 <= self.chunk_duration_ms <= 10_000:
-            raise ValueError("StepFun chunk duration must be 1-10 seconds")
+        if not 1_000 <= self.chunk_duration_ms <= 60_000:
+            raise ValueError("StepFun chunk duration must be 1-60 seconds")
         if self.proxy_fps <= 0 or self.proxy_height <= 0:
             raise ValueError("invalid proxy settings")
+        if not 1 <= self.vision_workers <= 4:
+            raise ValueError("vision_workers must be between 1 and 4")
 
 
 def _dump_json(path: Path, payload: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(f".{path.name}.tmp")
+    temporary = path.with_name(f".{path.name}.{threading.get_ident()}.tmp")
     temporary.write_text(
         json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
@@ -421,7 +426,11 @@ class ProductionPipeline:
         else:
             cache_dir = self.paths.root / "cache" / "visual"
             cache_dir.mkdir(parents=True, exist_ok=True)
-            for index, chunk in enumerate(chunks, start=1):
+
+            def process_chunk(
+                position: int,
+                chunk: dict[str, Any],
+            ) -> tuple[int, list[VisualEvent], dict[str, Any], bool]:
                 key = _cache_key(
                     chunk["sha256"],
                     self.settings.vision_model,
@@ -434,7 +443,7 @@ class ProductionPipeline:
                     cached = _load_json(cache_path)
                     chunk_events = [VisualEvent.model_validate(item) for item in cached["events"]]
                     raw = cached["raw"]
-                    cache_hits += 1
+                    hit = True
                 else:
                     chunk_path = ensure_within_project(
                         self.paths.project_root,
@@ -461,9 +470,36 @@ class ProductionPipeline:
                             "raw": raw,
                         },
                     )
+                    hit = False
+                return position, chunk_events, raw, hit
+
+            ordered: dict[
+                int, tuple[list[VisualEvent], dict[str, Any], bool]
+            ] = {}
+            with ThreadPoolExecutor(
+                max_workers=min(self.settings.vision_workers, len(chunks)),
+                thread_name_prefix="shotseek-vision",
+            ) as pool:
+                futures = {
+                    pool.submit(process_chunk, position, chunk): position
+                    for position, chunk in enumerate(chunks)
+                }
+                for completed, future in enumerate(as_completed(futures), start=1):
+                    position, chunk_events, raw, hit = future.result()
+                    ordered[position] = (chunk_events, raw, hit)
+                    progress(
+                        completed,
+                        len(chunks),
+                        f"视觉分析 {completed}/{len(chunks)}",
+                    )
+
+            for position, chunk in enumerate(chunks):
+                chunk_events, raw, hit = ordered[position]
                 events.extend(chunk_events)
-                raw_items.append({"chunk_id": chunk["chunk_id"], "response": raw})
-                progress(index, len(chunks), f"视觉分析 {index}/{len(chunks)}")
+                raw_items.append(
+                    {"chunk_id": chunk["chunk_id"], "response": raw}
+                )
+                cache_hits += int(hit)
         events = self._clip_events(events, duration_ms)
         if not events:
             raise RuntimeError("StepFun vision returned no in-range events")

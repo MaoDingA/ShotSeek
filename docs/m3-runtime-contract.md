@@ -74,7 +74,7 @@ POST /api/v1/videos/{video_id}/search
 ```text
 data/runtime/videos/{video_id}/
 ├── media/       # source_info、720p CFR proxy、16 kHz MP3
-├── chunks/      # 小于 128 MiB 的 10 秒 MP4 与 manifest
+├── chunks/      # 小于 128 MiB 的 1–60 秒 MP4 与 manifest
 ├── raw/         # StepFun 原始响应
 ├── evidence/    # VisualEvent、Utterance
 ├── timeline/    # shot grid、对齐证据、Scene、审计
@@ -82,9 +82,12 @@ data/runtime/videos/{video_id}/
 └── traces/      # Planner → Retriever → Verifier 轨迹
 ```
 
-代理优先使用 `h264_nvenc`，不可用时明确回退 `libx264`。视觉切片严格限制在
-1–10 秒，默认 10 秒；单片安全上限为 110 MiB。视觉缓存键包含片段内容、模型、
-Prompt 版本、推理档位和 Schema 版本。ASR 缓存键包含音频内容、模型和 Schema。
+代理优先使用 `h264_nvenc`，不可用时明确回退 `libx264`。Production Runtime
+允许 1–60 秒视觉切片，默认 30 秒；单片安全上限为 110 MiB。30 秒与 60 秒切片
+均已通过 StepFun 标准 Files API + `step-3.7-flash` 实测。默认采用 30 秒以兼顾
+事件粒度和请求数量，长视频可显式选择 60 秒。历史 M0 契约仍保留当时验收使用的
+10 秒安全窗口，不回写旧证据。视觉缓存键包含片段内容、模型、Prompt 版本、推理
+档位和 Schema 版本。ASR 缓存键包含音频内容、模型和 Schema。
 
 模型时间只作为候选时间。最终 Scene 必须通过镜头网格执行 `shot_first` 对齐，
 并保存原始区间、最终区间和帧差。
@@ -110,6 +113,12 @@ shotseek-runtime --project-root /home/phenom8000/model/spark --mode fixture
 ```bash
 export STEPFUN_API_KEY='<secret>'
 shotseek-runtime --project-root /home/phenom8000/model/spark --mode live
+```
+
+长视频需要减少请求数时，可显式切换为 60 秒切片；视觉并发保持不超过 4：
+
+```bash
+shotseek-runtime --project-root /home/phenom8000/model/spark --mode live --chunk-duration-seconds 60 --vision-workers 3
 ```
 
 密钥只从环境读取，不写入 Job、Artifact、日志或模型缓存。
