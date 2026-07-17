@@ -62,8 +62,56 @@ def sanitize_vision_response(raw: Any, *, api_key: str | None = None) -> Any:
     return result
 
 
+def sanitize_planner_response(raw: Any, *, api_key: str | None = None) -> Any:
+    return sanitize_vision_response(raw, api_key=api_key)
+
+
 def sanitize_asr_response(raw: Any, *, api_key: str | None = None) -> Any:
     return _sanitize_value(copy.deepcopy(raw), api_key=api_key)
+
+
+def update_planner_fixture_from_live_run(
+    project_root: Path,
+    run_dir: Path,
+    *,
+    api_key: str | None = None,
+) -> list[Path]:
+    root = project_root.resolve()
+    run = run_dir.resolve()
+    run.relative_to(root)
+    report = json.loads((run / "run_report.json").read_text(encoding="utf-8"))
+    if (
+        report.get("status") != "pass"
+        or report.get("mode") != "live"
+        or report.get("planner_status") != "LIVE"
+        or report.get("network_calls") != 1
+    ):
+        raise ValueError("planner fixture source must be a successful live M2A run")
+    raw = json.loads(
+        (run / "raw" / "planner_response.json").read_text(encoding="utf-8")
+    )
+    sanitized = sanitize_planner_response(raw, api_key=api_key)
+    fixture_dir = root / "tests" / "fixtures" / "stepfun"
+    destination = fixture_dir / "query_planner_response.sample.json"
+    destination.write_text(
+        json.dumps(sanitized, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    provenance_path = fixture_dir / "fixture_provenance.sample.json"
+    provenance = json.loads(provenance_path.read_text(encoding="utf-8"))
+    provenance[destination.name] = {
+        "kind": "sanitized_live_response",
+        "live_derived": True,
+        "provider": "stepfun",
+        "source_run_id": run.name,
+        "generated_at": datetime.now(UTC).isoformat(),
+        "contract": "query-v2",
+    }
+    provenance_path.write_text(
+        json.dumps(provenance, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return [destination, provenance_path]
 
 
 def update_fixtures_from_live_run(

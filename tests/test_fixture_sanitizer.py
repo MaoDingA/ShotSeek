@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from shotseek.fixtures import (
     sanitize_asr_response,
+    sanitize_planner_response,
     sanitize_stepfun_file,
     sanitize_vision_response,
 )
@@ -65,3 +66,15 @@ def test_sanitizer_removes_exact_api_key_without_printing_it() -> None:
         {"debug": f"Bearer {secret}"}, api_key=secret
     )
     assert secret not in sanitized["debug"]
+
+
+def test_planner_fixture_sanitizer_preserves_content_but_redacts_identity() -> None:
+    raw = {
+        "id": "live-id",
+        "created": 123,
+        "choices": [{"message": {"content": {"schema_version": "query-v2"}}}],
+    }
+    sanitized = sanitize_planner_response(raw)
+    assert sanitized["id"] == "chatcmpl_fixture_redacted"
+    assert sanitized["created"] == 0
+    assert sanitized["choices"][0]["message"]["content"]["schema_version"] == "query-v2"

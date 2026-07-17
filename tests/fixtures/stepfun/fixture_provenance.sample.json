@@ -22,6 +22,14 @@
     ],
     "transport": "sse"
   },
+  "query_planner_response.sample.json": {
+    "contract": "query-v2",
+    "generated_at": "2026-07-17T05:22:51.975932+00:00",
+    "kind": "sanitized_live_response",
+    "live_derived": true,
+    "provider": "stepfun",
+    "source_run_id": "live-planner-v1"
+  },
   "stepfun_file.contract.sample.json": {
     "kind": "schema_contract",
     "live_derived": false,

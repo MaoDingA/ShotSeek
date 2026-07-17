@@ -1,0 +1,64 @@
+{
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "message": {
+        "content": {
+          "actions": [
+            "raise"
+          ],
+          "entities": [
+            {
+              "role": "subject",
+              "text": "woman"
+            }
+          ],
+          "evidence_preference": [
+            "visual",
+            "dialogue"
+          ],
+          "intent": "find_scene",
+          "keywords": [],
+          "locations": [],
+          "negative_constraints": [],
+          "objects": [
+            "robotic hand"
+          ],
+          "ordinal": {
+            "scope": "after_temporal_filter",
+            "value": 2
+          },
+          "quoted_text": null,
+          "raw_query": "fixture",
+          "require_direct_evidence": true,
+          "schema_version": "query-v2",
+          "temporal_constraints": [
+            {
+              "anchor": {
+                "actions": [
+                  "appear"
+                ],
+                "entities": [],
+                "keywords": [],
+                "locations": [],
+                "objects": [
+                  "robot"
+                ],
+                "quoted_text": null
+              },
+              "relation": "after",
+              "second_anchor": null
+            }
+          ],
+          "top_k": 3
+        },
+        "role": "assistant"
+      }
+    }
+  ],
+  "created": 0,
+  "id": "chatcmpl_fixture_redacted",
+  "model": "step-3.7-flash",
+  "object": "chat.completion"
+}
