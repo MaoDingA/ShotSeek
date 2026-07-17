@@ -72,6 +72,7 @@ def main() -> None:
         choices=range(1, 5),
         metavar="1-4",
     )
+    parser.add_argument("--proxy-passthrough", action="store_true")
     args = parser.parse_args()
 
     project_root = Path(__file__).resolve().parents[1]
@@ -85,6 +86,7 @@ def main() -> None:
         api_key=api_key,
         chunk_duration_ms=args.chunk_duration_seconds * 1_000,
         vision_workers=args.vision_workers,
+        proxy_passthrough=args.proxy_passthrough,
     )
     paths = RuntimePaths(project_root, runtime_root)
     paths.ensure()
@@ -141,6 +143,7 @@ def main() -> None:
         "pipeline": {
             "chunk_duration_ms": settings.chunk_duration_ms,
             "vision_workers": settings.vision_workers,
+            "proxy_passthrough": settings.proxy_passthrough,
         },
         "video": {
             "sha256": video.sha256 if video else stored.sha256,

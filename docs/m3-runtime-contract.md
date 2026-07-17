@@ -89,6 +89,13 @@ data/runtime/videos/{video_id}/
 10 秒安全窗口，不回写旧证据。视觉缓存键包含片段内容、模型、Prompt 版本、推理
 档位和 Schema 版本。ASR 缓存键包含音频内容、模型和 Schema。
 
+已经预标准化的 MP4 可显式启用 `--proxy-passthrough`。该选项默认关闭；启用后仍会
+校验 H.264、720 高、25fps CFR、AAC/无音频和至多双声道，不满足任一条件就拒绝
+直通。校验通过时使用项目内硬链接（不可用时复制），避免对已验收代理重复编码。
+Worker 会把阶段异常类型和脱敏后的 stderr 摘要写入 `job_event`，而不是只保留
+“阶段失败”。
+
+
 模型时间只作为候选时间。最终 Scene 必须通过镜头网格执行 `shot_first` 对齐，
 并保存原始区间、最终区间和帧差。
 
@@ -119,6 +126,12 @@ shotseek-runtime --project-root /home/phenom8000/model/spark --mode live
 
 ```bash
 shotseek-runtime --project-root /home/phenom8000/model/spark --mode live --chunk-duration-seconds 60 --vision-workers 3
+```
+
+仅对已经按上述契约预标准化的素材：
+
+```bash
+shotseek-runtime --project-root /home/phenom8000/model/spark --mode live --chunk-duration-seconds 60 --vision-workers 3 --proxy-passthrough
 ```
 
 密钥只从环境读取，不写入 Job、Artifact、日志或模型缓存。

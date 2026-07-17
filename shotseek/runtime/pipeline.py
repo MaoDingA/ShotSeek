@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import shutil
 import subprocess
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -55,6 +56,7 @@ class PipelineSettings:
     proxy_bitrate: str = "3M"
     chunk_duration_ms: int = 30_000
     chunk_max_bytes: int = 110 * 1024 * 1024
+    proxy_passthrough: bool = False
     shot_threshold: float = 0.30
     shot_min_gap_frames: int = 6
     vision_workers: int = 3
@@ -223,9 +225,78 @@ class ProductionPipeline:
             self.settings.proxy_height,
             self.settings.proxy_fps,
             self.settings.proxy_bitrate,
+            self.settings.proxy_passthrough,
         )
         backend = "cached"
-        if not proxy.is_file() or not meta.is_file() or _load_json(meta).get("cache_key") != expected_key:
+        cache_valid = (
+            proxy.is_file()
+            and meta.is_file()
+            and _load_json(meta).get("cache_key") == expected_key
+        )
+        if self.settings.proxy_passthrough and not cache_valid:
+            partial.unlink(missing_ok=True)
+            progress(0, 1, "校验预标准化代理视频")
+            source_info = _load_json(root / "media" / "source_info.json")
+            contract = probe_video_contract(self.paths.project_root, source)
+            violations: list[str] = []
+            if source.suffix.lower() != ".mp4":
+                violations.append("container must be MP4")
+            if contract.video_codec != "h264":
+                violations.append("video codec must be H.264")
+            if contract.height != self.settings.proxy_height:
+                violations.append(
+                    f"height must be {self.settings.proxy_height}"
+                )
+            if contract.fps_num != self.settings.proxy_fps * contract.fps_den:
+                violations.append(
+                    f"frame rate must be {self.settings.proxy_fps} fps"
+                )
+            if not contract.cfr:
+                violations.append("video must be CFR")
+            if source_info.get("audio_codec") not in {None, "aac"}:
+                violations.append("audio codec must be AAC or absent")
+            if (source_info.get("audio_channels") or 0) > 2:
+                violations.append("audio must have at most two channels")
+            if violations:
+                raise ValueError(
+                    "proxy passthrough validation failed: "
+                    + "; ".join(violations)
+                )
+            try:
+                os.link(source, partial)
+                materialization = "hardlink"
+            except OSError:
+                shutil.copy2(source, partial)
+                materialization = "copy"
+            partial.replace(proxy)
+            backend = f"validated_passthrough_{materialization}"
+            _dump_json(
+                meta,
+                {
+                    "schema_version": PIPELINE_VERSION,
+                    "cache_key": expected_key,
+                    "backend": backend,
+                    "video_contract": contract.model_dump(mode="json"),
+                },
+            )
+            self._record_artifact(
+                video,
+                kind="proxy_video",
+                path=proxy,
+                key_parts=(expected_key,),
+            )
+            progress(1, 1, f"代理视频直通完成（{materialization}）")
+            return StageResult(
+                message=f"代理视频直通完成（{materialization}）",
+                video_updates={
+                    "proxy_path": self._relative(proxy),
+                    "duration_ms": contract.duration_ms,
+                    "width": contract.width,
+                    "height": contract.height,
+                    "fps": contract.fps_num / contract.fps_den,
+                },
+            )
+        if not cache_valid:
             partial.unlink(missing_ok=True)
             progress(0, 1, "生成 720p CFR 代理视频")
             common = [

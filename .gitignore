@@ -66,6 +66,7 @@ pnpm-debug.log*
 *.mov
 *.mp3
 *.mp4
+/samples/*.manifest.json
 *.wav
 *.flac
 *.engine

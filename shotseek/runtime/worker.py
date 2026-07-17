@@ -2,12 +2,26 @@
 
 from __future__ import annotations
 
+import re
 import threading
 from dataclasses import dataclass, field
 from typing import Any, Callable, Protocol
 
 from shotseek.runtime.registry import RuntimeRegistry
 from shotseek.runtime.schema import JobRecord, JobState, STAGE_STATES, VideoRecord
+
+
+SECRET_RE = re.compile(
+    r"(?i)\b(api[_-]?key|authorization)\b(\s*[:=]\s*)"
+    r"(?:bearer\s+)?[^\s,;]+"
+)
+
+
+def error_summary(error: Exception) -> str:
+    raw = getattr(error, "stderr", None) or str(error)
+    normalized = " ".join(str(raw).split())
+    redacted = SECRET_RE.sub(r"\1\2<redacted>", normalized)
+    return f"{type(error).__name__}: {redacted[-1200:]}"
 
 
 @dataclass(frozen=True)
@@ -124,6 +138,7 @@ class RuntimeWorker:
                     message=result.message,
                 )
             except Exception as error:  # stage boundary is the durability boundary
+                detail = error_summary(error)
                 latest = self.registry.get_job(current.job_id) or current
                 if latest.state == JobState.CANCELLED:
                     return latest
@@ -132,14 +147,14 @@ class RuntimeWorker:
                     return self.registry.transition(
                         current.job_id,
                         JobState.FAILED,
-                        message=f"{stage.value} 失败: {type(error).__name__}",
+                        message=f"{stage.value} 失败: {detail}",
                         error_code=f"{stage.value}_FAILED",
                         force=True,
                     )
                 self.registry.transition(
                     current.job_id,
                     JobState.RETRYING,
-                    message=f"{stage.value} 失败，准备重试",
+                    message=f"{stage.value} 失败，准备重试: {detail}",
                     error_code=f"{stage.value}_RETRY",
                     resume_state=stage,
                     increment_retry=True,
@@ -167,7 +182,7 @@ class RuntimeWorker:
                 result = self.run_once()
                 self.last_error = None
             except Exception as error:
-                self.last_error = f"{type(error).__name__}: {error}"
+                self.last_error = error_summary(error)
                 self._stop.wait(self.poll_interval)
                 continue
             if result is None:

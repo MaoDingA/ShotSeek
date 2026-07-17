@@ -36,6 +36,11 @@ def build_parser() -> argparse.ArgumentParser:
         default=int(os.environ.get("SHOTSEEK_VISION_WORKERS", "3")),
         metavar="1-4",
     )
+    parser.add_argument(
+        "--proxy-passthrough",
+        action="store_true",
+        default=os.environ.get("SHOTSEEK_PROXY_PASSTHROUGH") == "1",
+    )
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--reload", action="store_true")
@@ -54,6 +59,7 @@ def main() -> None:
         api_key=api_key,
         chunk_duration_ms=args.chunk_duration_seconds * 1_000,
         vision_workers=args.vision_workers,
+        proxy_passthrough=args.proxy_passthrough,
     )
     app = create_runtime_app(
         project_root=project_root,

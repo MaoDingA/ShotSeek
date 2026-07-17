@@ -16,6 +16,7 @@ def test_pipeline_settings_use_production_chunk_defaults() -> None:
     settings = PipelineSettings()
     assert settings.chunk_duration_ms == 30_000
     assert settings.vision_workers == 3
+    assert settings.proxy_passthrough is False
     assert PipelineSettings(chunk_duration_ms=60_000).chunk_duration_ms == 60_000
     with pytest.raises(ValueError, match="1-60 seconds"):
         PipelineSettings(chunk_duration_ms=60_001)
@@ -24,9 +25,11 @@ def test_pipeline_settings_use_production_chunk_defaults() -> None:
 def test_runtime_parser_exposes_chunk_and_worker_controls(monkeypatch) -> None:
     monkeypatch.delenv("SHOTSEEK_CHUNK_DURATION_SECONDS", raising=False)
     monkeypatch.delenv("SHOTSEEK_VISION_WORKERS", raising=False)
+    monkeypatch.delenv("SHOTSEEK_PROXY_PASSTHROUGH", raising=False)
     defaults = build_parser().parse_args([])
     assert defaults.chunk_duration_seconds == 30
     assert defaults.vision_workers == 3
+    assert defaults.proxy_passthrough is False
 
     selected = build_parser().parse_args(
         [
@@ -34,13 +37,15 @@ def test_runtime_parser_exposes_chunk_and_worker_controls(monkeypatch) -> None:
             "60",
             "--vision-workers",
             "4",
+            "--proxy-passthrough",
         ]
     )
     assert selected.chunk_duration_seconds == 60
     assert selected.vision_workers == 4
+    assert selected.proxy_passthrough is True
 
 
-def _generate_video(path: Path) -> None:
+def _generate_video(path: Path, *, size: str = "320x180") -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     subprocess.run(
         [
@@ -52,7 +57,7 @@ def _generate_video(path: Path) -> None:
             "-f",
             "lavfi",
             "-i",
-            "testsrc2=size=320x180:rate=25",
+            f"testsrc2=size={size}:rate=25",
             "-f",
             "lavfi",
             "-i",
@@ -70,6 +75,56 @@ def _generate_video(path: Path) -> None:
         ],
         check=True,
     )
+
+
+@pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="ffmpeg is required")
+def test_proxy_passthrough_requires_and_reuses_normalized_media(
+    tmp_path: Path,
+) -> None:
+    root = Path(__file__).resolve().parents[1]
+    runtime_root = (
+        root / "runs" / "tests" / "runtime-passthrough" / tmp_path.name
+    )
+    shutil.rmtree(runtime_root, ignore_errors=True)
+    paths = RuntimePaths(root, runtime_root)
+    source = runtime_root / "source" / "normalized.mp4"
+    _generate_video(source, size="1280x720")
+    with source.open("rb") as handle:
+        stored = store_upload(paths, handle, source.name)
+    registry = RuntimeRegistry(paths.registry)
+    video, _ = registry.register_video(
+        sha256=stored.sha256,
+        original_filename=stored.original_filename,
+        source_path=str(stored.path.relative_to(root)),
+        bytes=stored.bytes,
+    )
+    job = registry.create_job(video.video_id)
+    pipeline = ProductionPipeline(
+        paths=paths,
+        registry=registry,
+        settings=PipelineSettings(proxy_passthrough=True),
+    )
+    probed = pipeline.run_stage(
+        job=job,
+        video=video,
+        stage=JobState.PROBING,
+        progress=lambda *_: None,
+    )
+    registry.update_video(video.video_id, **probed.video_updates)
+    video = registry.get_video(video.video_id)
+    transcoded = pipeline.run_stage(
+        job=job,
+        video=video,
+        stage=JobState.TRANSCODING,
+        progress=lambda *_: None,
+    )
+    proxy = paths.video_root(video.video_id) / "media" / "proxy.mp4"
+    metadata = json.loads(
+        (proxy.parent / "proxy_info.json").read_text(encoding="utf-8")
+    )
+    assert "直通完成" in transcoded.message
+    assert metadata["backend"] == "validated_passthrough_hardlink"
+    assert proxy.stat().st_ino == stored.path.stat().st_ino
 
 
 @pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="ffmpeg is required")

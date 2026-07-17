@@ -27,7 +27,12 @@
     },
     "longform-v1": {
       "status": "pending_annotation",
-      "purpose": "continuous 30-43 minute material and temporal-boundary evaluation"
+      "material_status": "ready",
+      "purpose": "continuous 30-43 minute material and temporal-boundary evaluation",
+      "material_doc": "docs/materials/longform-v1.md",
+      "source_type": "three-film Blender Open Movies compilation",
+      "duration_ms": 2218672,
+      "source_video_sha256": "cdb46b849c57b8a70b326f3d9c95f6f72e189bf0d3a56438f54c73b9045c3b89"
     }
   }
 }
