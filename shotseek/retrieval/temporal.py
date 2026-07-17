@@ -24,8 +24,10 @@ def _anchor_query(anchor: AnchorSpec, raw_query: str) -> QuerySpecV2:
     )
 
 
-def _mark_temporal(candidate: CandidateScene) -> CandidateScene:
-    components = candidate.components.model_copy(update={"temporal_score": 1.0})
+def _mark_temporal(
+    candidate: CandidateScene, score: float = 1.0
+) -> CandidateScene:
+    components = candidate.components.model_copy(update={"temporal_score": score})
     return candidate.model_copy(update={"components": components})
 
 
@@ -80,12 +82,26 @@ def resolve_temporal_constraints(
         second = None
         before_count = len(current)
         if constraint.relation == "after":
-            current = [item for item in current if item.start_ms >= first.end_ms]
+            current = [
+                _mark_temporal(
+                    item,
+                    1.0 / (1.0 + (item.start_ms - first.end_ms) / 10_000),
+                )
+                for item in current
+                if item.start_ms >= first.end_ms
+            ]
         elif constraint.relation == "before":
-            current = [item for item in current if item.end_ms <= first.start_ms]
+            current = [
+                _mark_temporal(
+                    item,
+                    1.0 / (1.0 + (first.start_ms - item.end_ms) / 10_000),
+                )
+                for item in current
+                if item.end_ms <= first.start_ms
+            ]
         elif constraint.relation == "during":
             current = [
-                item
+                _mark_temporal(item)
                 for item in current
                 if item.start_ms >= first.start_ms and item.end_ms <= first.end_ms
             ]
@@ -107,11 +123,13 @@ def resolve_temporal_constraints(
             second = second_candidates[0]
             left, right = sorted((first, second), key=lambda item: item.start_ms)
             current = [
-                item
+                _mark_temporal(
+                    item,
+                    1.0 / (1.0 + (item.start_ms - left.end_ms) / 10_000),
+                )
                 for item in current
                 if item.start_ms >= left.end_ms and item.end_ms <= right.start_ms
             ]
-        current = [_mark_temporal(item) for item in current]
         trace_constraints.append(
             {
                 "relation": constraint.relation,

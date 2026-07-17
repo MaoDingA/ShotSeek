@@ -24,7 +24,7 @@ STOP_WORDS = {
     "a", "an", "the", "in", "on", "at", "of", "to", "with", "and", "or",
     "behind", "scene", "shot", "find", "show", "me", "where", "that",
     "after", "before", "during", "between", "first", "second", "last", "not",
-    "的", "那个", "找到", "镜头", "场景",
+    "的", "在", "正", "里", "里的", "那个", "找到", "镜头", "场景",
 }
 ALIASES = {
     **M1_ALIASES,
@@ -42,6 +42,35 @@ ALIASES = {
     "拿枪": " holding rifle ",
     "旁边": " beside ",
     "说完": " after saying ",
+    "军装女性": " woman military uniform ",
+    "机械四足": " mechanical quadruped ",
+    "带镜步枪": " scoped rifle ",
+    "年轻男子": " young man ",
+    "监控室": " control ",
+    "金发": " blonde ",
+    "运河": " canal ",
+    "军装": " military uniform ",
+    "女性": " woman ",
+    "四足": " quadruped ",
+    "户外": " outdoors ",
+    "有人": " person ",
+    "瞄着": " aiming ",
+    "棕发": " brown hair ",
+    "盯着": " looking ",
+    "男子": " man ",
+    "看向": " looking ",
+    "右侧": " right ",
+    "多台": " multiple ",
+    "显示器": " monitor ",
+    "gun operator": " person ",
+    "four-legged": " quadruped ",
+    "blond": " blonde ",
+    "female": " woman ",
+    "outside": " outdoors ",
+    "soldier": " military ",
+    "inside": " indoors ",
+    "machine": " robot ",
+    "sighting": " aiming ",
 }
 ENTITY_TERMS = {
     "man", "woman", "person", "young", "tom", "people", "male", "female",
@@ -60,14 +89,16 @@ LOCATION_TERMS = {
 
 def expand_aliases(value: str) -> str:
     result = value.lower()
-    for source, target in ALIASES.items():
+    for source in sorted(ALIASES, key=len, reverse=True):
+        target = ALIASES[source]
         result = result.replace(source, f" {target} ")
     return " ".join(result.split())
 
 
-def tokens(value: str) -> list[str]:
+def tokens(value: str, *, expand: bool = True) -> list[str]:
     result: list[str] = []
-    for token in TOKEN_RE.findall(expand_aliases(value)):
+    normalized = expand_aliases(value) if expand else value
+    for token in TOKEN_RE.findall(normalized):
         cleaned = token.lower().strip("'")
         if cleaned and cleaned not in STOP_WORDS and cleaned not in result:
             result.append(cleaned)
@@ -76,7 +107,7 @@ def tokens(value: str) -> list[str]:
 
 def _anchor(value: str) -> AnchorSpec:
     quoted = QUOTED_RE.search(value)
-    raw_tokens = tokens(QUOTED_RE.sub(" ", value))
+    raw_tokens = tokens(QUOTED_RE.sub(" ", value), expand=False)
     entities = [
         EntityConstraint(text=token, role="other")
         for token in raw_tokens
@@ -145,7 +176,7 @@ def _negative_constraints(expanded: str) -> tuple[str, list[NegativeConstraint]]
         match = re.search(pattern, cleaned)
         if not match:
             continue
-        for token in tokens(match.group(1)):
+        for token in tokens(match.group(1), expand=False):
             field = (
                 "entity" if token in ENTITY_TERMS
                 else "action" if token in ACTION_TERMS
@@ -167,7 +198,7 @@ def build_rule_spec(query: str, *, top_k: int = 3) -> QuerySpecV2:
     without_quote = QUOTED_RE.sub(" ", expanded)
     without_negative, negatives = _negative_constraints(without_quote)
     target, temporal = _split_temporal(without_negative)
-    target_tokens = tokens(target)
+    target_tokens = tokens(target, expand=False)
     entities = [
         EntityConstraint(text=token, role="other")
         for token in target_tokens

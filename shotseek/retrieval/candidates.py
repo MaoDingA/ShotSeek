@@ -33,6 +33,7 @@ CANONICAL = {
     "buildings": "building",
     "rooftops": "rooftop",
     "robots": "robot",
+    "monitors": "monitor",
 }
 
 

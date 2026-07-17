@@ -71,6 +71,7 @@ class RuleEvidenceVerifier:
                     *candidate.actions,
                     *candidate.objects,
                     *candidate.visible_text,
+                    candidate.location or "",
                 ]
             ),
         }
