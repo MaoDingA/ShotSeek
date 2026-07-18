@@ -2,7 +2,9 @@
 
 > 用一句话，定位长视频里的准确镜头。
 
-ShotSeek 是面向影视后期的证据对齐场景检索工具。它使用 StepFun 理解画面、对白与查询意图，在 NVIDIA DGX Spark 上建立帧级、镜头级证据时间线，让自然语言查询返回可验证的时间码、完整镜头边界和证据引用。
+ShotSeek 是面向影视后期的证据对齐场景检索工具。它使用 StepFun 理解画面、对白
+与查询意图，在 NVIDIA DGX Spark 上建立帧级、镜头级证据时间线，让自然语言查询
+返回可验证的时间码、完整镜头边界和证据引用。
 
 ## 能做什么
 
@@ -11,102 +13,114 @@ ShotSeek 是面向影视后期的证据对齐场景检索工具。它使用 Step
 - 将模型的近似时间映射到原片 Shot Grid，而不是直接相信模型时间码。
 - 对 Top 20 候选逐项核对画面、对白、反证和边界，再返回 Top 3。
 - 为每次搜索保留 Agent Trace、分项得分和直接证据。
-- 通过只读 API 提供视频、场景、搜索、Trace 和 Metrics。
+- 上传视频后通过 Job、进度事件和断点恢复完成生产流水线。
+- 在浏览器工作台中搜索、精确跳转、展开证据并导出剪辑数据。
+- 支持 JSON、SRT、XML 和 CMX3600 EDL。
 
 ## 技术链路
 
-~~~mermaid
+```mermaid
 flowchart LR
-    A[视频] --> B[StepFun 视频理解和 ASR]
-    B --> C[DGX Spark Shot Grid]
-    C --> D[证据对齐 Scene]
+    A[上传视频] --> B[DGX Spark 媒体引擎]
+    B --> C[Shot Grid 与代理]
+    C --> D[StepFun 视频理解与 ASR]
+    D --> E[证据对齐 Scene]
     Q[自然语言查询] --> P[Query Planner]
-    D --> R[FTS5 Top 20 宽召回]
+    E --> R[FTS5 Top 20 宽召回]
     P --> R
     R --> T[确定性时间与序数运算]
     T --> V[Evidence Verifier]
-    V --> O[Top 3 时间码与证据]
-~~~
+    V --> O[播放器、证据与导出]
+```
 
 - **Step 3.7 Flash**：结构化视觉事件、复杂 QuerySpec 和候选证据复核。
 - **StepAudio 2.5 ASR**：对白、说话人和毫秒时间戳。
 - **FFmpeg / DGX Spark**：媒体探测、镜头切点与帧级时间基。
 - **SQLite FTS5**：本地宽召回；时间与序数由确定性代码计算。
-- **FastAPI**：只读搜索和诊断接口。
+- **FastAPI + React**：任务运行时、Range 播放、证据工作台与剪辑导出。
 
-## 当前状态
+## 已验证能力
 
-| 阶段 | 状态 | 已验证结果 |
-| --- | --- | --- |
-| M0 接口与时间线契约 | 完成 | StepFun Files、视频理解、异步 ASR 真实验收通过 |
-| M1 Shot Grid、Scene 与检索 | 完成 | 25 个 Shot、23 个 Scene、证据引用错误 0 |
-| M2A Query Planner | 完成 | Rule / StepFun / Cache / Fallback；真实 StepFun 与离线重放通过 |
-| M2B Agentic Retrieval | 完成 | Top 20 召回、时间关系、序数、反证与候选验证闭环 |
-| M2C 只读 API | 完成 | Health、Video、Scene、Search、Trace、Metrics |
-| M2 评测 | 完成 | 40/40；Recall@1/3、MRR、Candidate Recall@20 均为 1.0 |
+| 能力 | 真实验证 |
+| --- | --- |
+| StepFun 契约 | Files、Step 3.7 视频理解与 StepAudio 2.5 ASR |
+| M0 Live 硬门槛 | 通过：真实上传、视觉、ASR、统一时间线与脱敏验收 |
+| Production Runtime | Upload、Job、SSE 进度、取消、重试、恢复与内容寻址 |
+| 长视频闭环 | 36:58 连续素材处理到 `READY`，216 个 Scene，视觉与 ASR 均为 `LIVE` |
+| 工作台 | 播放器、时间轴、结果卡、Evidence Drawer、Agent Trace |
+| 交付 | JSON、SRT、XML、CMX3600 EDL |
+| 评测 | 黄金回归 40 条 R@1/R@3 100%；独立 Holdout 与 Longform 保留失败结果 |
 
-40 条评测包含原有 15 条查询，以及中文同义词、英文同义词、复杂时间关系、序数、否定约束和困难负例。完整 Agent 的负例高置信误报为 0，离线回放结果确定一致。详细契约与消融结果见 [M2 Agentic Retrieval](docs/m2-agentic-retrieval.md)。
+黄金样片证明回归稳定性，不代表跨素材泛化。当前独立评测没有出现负例误报，但
+Holdout v1/v2 与 Longform v1 尚未全部达到 Recall 门槛。完整数字和失败 Case 见
+[评测与版本门禁](docs/evaluation.md)。
 
 ## 快速开始
 
-需要 Python 3.11+ 和 FFmpeg。
+需要 Python 3.11+、FFmpeg；仅修改前端时需要 Node.js。
 
-~~~bash
+```bash
 python3 -m venv .venv
-.venv/bin/python -m pip install -e ".[dev]"
-
-.venv/bin/python scripts/run_m0_probe.py --fixture --video samples/golden.mp4
-.venv/bin/python scripts/run_m1a.py
-.venv/bin/python scripts/run_m1b.py
-.venv/bin/python scripts/run_m1c.py
-.venv/bin/python scripts/run_m2_evaluation.py
-~~~
-
-启动只读 API：
-
-~~~bash
-.venv/bin/python scripts/serve_api.py
-~~~
-
-主要接口：
-
-~~~text
-GET  /health
-GET  /videos
-GET  /videos/{video_id}
-GET  /videos/{video_id}/scenes
-GET  /scenes/{scene_id}
-POST /search
-GET  /traces/{trace_id}
-GET  /metrics
-~~~
-
-所有运行产物写入被忽略的 runs/。默认 API 与评测均不访问网络。
-
-## 真实 StepFun 验证
-
-复制环境文件并填写自己的密钥：
-
-~~~bash
+.venv/bin/python -m pip install -e ".[dev,competition]"
 cp .env.example .env
-.venv/bin/python scripts/run_m0_probe.py --live --video samples/golden.mp4
-~~~
+```
 
-M2 已分别完成复杂查询规划和候选验证的真实 StepFun 调用，并将脱敏响应保存为离线 Fixture。模型只解析查询或验证给定候选，不负责直接选择最终 Scene，也不能改写时间码和镜头边界。
+填写 `.env` 中的 `STEPFUN_API_KEY`，再启动真实 Runtime：
 
-.env、媒体、数据库、运行报告和内部文档均已忽略。请勿提交密钥或原始素材。
+```bash
+set -a
+. ./.env
+set +a
+.venv/bin/shotseek-runtime --project-root "$(pwd)" --mode live --host 0.0.0.0
+```
+
+打开 `http://127.0.0.1:8000`，上传 MP4 后即可查看阶段进度并搜索。确定性离线演示
+可使用 `--mode fixture`，所有模型产物会明确标为 `CACHED`。
+
+主要接口包括：
+
+```text
+GET  /health
+POST /api/v1/jobs?filename=episode.mp4
+GET  /api/v1/jobs/{job_id}
+GET  /api/v1/jobs/{job_id}/events
+GET  /api/v1/jobs/{job_id}/result
+GET  /api/v1/videos/{video_id}/media
+POST /api/v1/videos/{video_id}/search
+GET  /api/v1/videos/{video_id}/scenes/{scene_id}/evidence
+GET  /api/v1/videos/{video_id}/export?format=edl
+```
+
+修改工作台后重新构建：
+
+```bash
+cd apps/web
+npm ci
+npm run typecheck
+npm run build
+```
+
+详细安装、DGX Spark 检查和运行方式见 [部署指南](docs/deployment.md)，现场流程见
+[演示脚本](docs/demo-script.md)。`.env`、媒体、数据库、运行报告和内部文档均被
+忽略；密钥只从进程环境读取。
 
 ## 验收
 
-~~~bash
+```bash
 .venv/bin/python -m pytest -q
+.venv/bin/python scripts/verify_m0_completion.py
+.venv/bin/python scripts/verify_m1_completion.py
 .venv/bin/python scripts/run_m2_evaluation.py
 .venv/bin/python scripts/verify_m2_completion.py
 .venv/bin/python scripts/check_repository_hygiene.py
-~~~
+```
 
-黄金样片来自 Blender Foundation 的 *Tears of Steel*；来源和许可信息见 [samples/README.md](samples/README.md)。
+测试素材来自 Blender Foundation 开放电影；来源、区间、SHA-256 和许可信息见
+[samples/README.md](samples/README.md)、[Longform v1](docs/materials/longform-v1.md)
+与 [Holdout v2](docs/materials/holdout-v2.md)。
 
 ## 当前边界
 
-本版本聚焦“查询 → 准确场景 → 直接证据 → 时间码”的后端核心，不包含前端工作台、多集管理、自动剪片、视频生成、人脸实名识别或 DaVinci Resolve 直接控制。
+当前版本聚焦单条长视频的“上传 → 搜索 → 证据 → 精确跳转 → 剪辑数据导出”。
+它不包含多集管理、自动剪片、视频生成、人脸实名识别或直接控制 DaVinci Resolve。
+独立素材的召回泛化仍在继续验证，因此不会把黄金回归结果表述为通用准确率。

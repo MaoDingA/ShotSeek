@@ -89,6 +89,9 @@ def test_built_workbench_is_served_from_runtime(tmp_path: Path) -> None:
             path.name for path in (Path(__file__).resolve().parents[1] / "shotseek" / "runtime" / "static" / "assets").glob("*.css")
         )
         assert client.get(f"/assets/{asset}").status_code == 200
+        favicon = client.get("/favicon.svg")
+        assert favicon.status_code == 200
+        assert favicon.headers["content-type"].startswith("image/svg+xml")
 
 
 def test_ready_video_exports_selected_scenes_in_all_delivery_formats(

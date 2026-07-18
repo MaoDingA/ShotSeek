@@ -108,7 +108,7 @@ class FailingFfmpegExecutor:
             1,
             ["ffmpeg"],
             stderr=(
-                "Authorization: Bearer top-secret-token "
+                "Authorization: Bearer fake-token "
                 "NVENC encoder failed near end of stream"
             ),
         )
@@ -124,5 +124,5 @@ def test_worker_persists_redacted_stage_error_detail(tmp_path: Path) -> None:
     assert result.state == JobState.FAILED
     assert "NVENC encoder failed near end of stream" in result.message
     assert "<redacted>" in result.message
-    assert "top-secret-token" not in result.message
+    assert "fake-token" not in result.message
     assert registry.events(job.job_id)[-1].message == result.message

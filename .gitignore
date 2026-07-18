@@ -40,6 +40,7 @@ pnpm-debug.log*
 /build/
 /dist/
 /site/
+/output/
 
 # Runtime data generated inside this repository
 /.cache/

@@ -21,7 +21,7 @@ try {
   await page.goto(baseUrl, { waitUntil: "domcontentloaded", timeout: 30_000 });
   await page.waitForSelector(".search-box input:not([disabled])", { timeout: 20_000 });
 
-  await page.type(".search-box input", "red jacket");
+  await page.type(".search-box input", "Memory override in progress");
   await page.click(".search-submit");
   await page.waitForSelector(".result-card", { timeout: 20_000 });
   await page.click(".result-card");

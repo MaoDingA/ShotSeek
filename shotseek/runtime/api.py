@@ -499,6 +499,7 @@ def create_runtime_app(
     )
     static_index = static_root / "index.html"
     static_assets = static_root / "assets"
+    static_favicon = static_root / "favicon.svg"
     if static_index.is_file():
         if static_assets.is_dir():
             app.mount(
@@ -506,6 +507,12 @@ def create_runtime_app(
                 StaticFiles(directory=static_assets),
                 name="shotseek-assets",
             )
+
+        if static_favicon.is_file():
+
+            @app.get("/favicon.svg", include_in_schema=False)
+            def favicon() -> FileResponse:
+                return FileResponse(static_favicon, media_type="image/svg+xml")
 
         @app.get("/", include_in_schema=False)
         def workbench() -> FileResponse:
