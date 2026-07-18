@@ -27,7 +27,7 @@ def probe_video_contract(project_root: Path, video_path: Path) -> VideoContract:
         [
             "ffprobe", "-v", "error", "-select_streams", "v:0",
             "-show_entries",
-            "format=duration,size:stream=codec_name,width,height,avg_frame_rate,r_frame_rate,time_base,nb_frames",
+            "format=duration,size:stream=codec_name,width,height,avg_frame_rate,r_frame_rate,time_base,duration,duration_ts,nb_frames",
             "-of", "json", str(resolved),
         ],
         cwd=root,
@@ -48,10 +48,21 @@ def probe_video_contract(project_root: Path, video_path: Path) -> VideoContract:
         raise ValueError("M1 requires a known CFR frame count")
     frame_count = int(frame_count_raw)
     expected_duration_ms = frame_to_ms(frame_count, avg_fps)
-    duration_ms = int(round(float(payload["format"]["duration"]) * 1000))
+    stream_duration = stream.get("duration")
+    if stream_duration not in {None, "", "N/A"}:
+        measured_duration_ms = int(round(float(stream_duration) * 1000))
+    elif stream.get("duration_ts") not in {None, "", "N/A"}:
+        measured_duration_ms = frame_to_ms(
+            int(stream["duration_ts"]),
+            1 / parse_ratio(stream["time_base"]),
+        )
+    else:
+        # A longer audio stream or codec padding may extend the container.
+        # CFR frame count and rate define the video timeline exactly.
+        measured_duration_ms = expected_duration_ms
     frame_duration_ms = float(1000 / avg_fps)
-    if abs(duration_ms - expected_duration_ms) > frame_duration_ms:
-        raise ValueError("container duration is inconsistent with CFR frame count")
+    if abs(measured_duration_ms - expected_duration_ms) > frame_duration_ms:
+        raise ValueError("video stream duration is inconsistent with CFR frame count")
     time_base = parse_ratio(stream["time_base"])
     return VideoContract(
         path=str(resolved.relative_to(root)),
@@ -59,7 +70,7 @@ def probe_video_contract(project_root: Path, video_path: Path) -> VideoContract:
         bytes=int(payload["format"].get("size") or resolved.stat().st_size),
         width=int(stream["width"]),
         height=int(stream["height"]),
-        duration_ms=duration_ms,
+        duration_ms=expected_duration_ms,
         frame_count=frame_count,
         fps_num=avg_fps.numerator,
         fps_den=avg_fps.denominator,
