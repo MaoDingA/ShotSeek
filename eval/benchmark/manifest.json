@@ -1,6 +1,6 @@
 {
   "schema_version": "shotseek-benchmark-manifest-v1",
-  "updated_at": "2026-07-17",
+  "updated_at": "2026-07-18",
   "splits": {
     "regression-golden-v1": {
       "status": "frozen",
@@ -38,6 +38,28 @@
       "negative_query_count": 3,
       "material_start_ms": 1622199,
       "material_end_ms": 2218672
+    },
+    "holdout-v2": {
+      "status": "frozen_pre_evaluation",
+      "material_status": "ready",
+      "purpose": "independent Caminandes material evaluated after v1 rules were frozen",
+      "material_doc": "docs/materials/holdout-v2.md",
+      "source_type": "single Blender Open Movie",
+      "duration_ms": 146000,
+      "source_video_sha256": "468e6743c674689a728726bbe4bb4b2a65bd8702a89f021af26a8bb4d450eebd",
+      "runtime_report_sha256": "b8cac16249ef0071170f54a5514f1af5aaf148ebff40adae65a7291b3f21b397",
+      "database_sha256": "85705bf05e3eef1c4c445c35d7ed0e9d336e239a2a41f7956497a89a3f675ce9",
+      "query_path": "eval/benchmark/holdout-v2.jsonl",
+      "query_file_sha256": "51b1adfd18d031a40de78457da8a7c535c569081d1d7ab6bd63824e7c768792e",
+      "query_count": 15,
+      "positive_query_count": 12,
+      "negative_query_count": 3,
+      "temporal_reference_query_count": 5,
+      "annotation_method": [
+        "human review of generated scene summaries",
+        "human review of an eight-second interval contact sheet"
+      ],
+      "annotation_limitation": "Single-reviewer frozen benchmark; results are not used to tune v1 retrieval or verification rules."
     },
     "longform-v1": {
       "status": "frozen_pre_evaluation",

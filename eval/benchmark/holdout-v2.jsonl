@@ -1,0 +1,15 @@
+{"query_id":"holdv2_01","category":"visual_text","text":"Caminandes title over a desert valley","acceptable_scene_ids":["scene_0002"],"reference_start_ms":0,"reference_end_ms":14440}
+{"query_id":"holdv2_02","category":"visual_action","text":"llama walks toward a simple wooden fence","acceptable_scene_ids":["scene_0003"]}
+{"query_id":"holdv2_03","category":"visual_action","text":"llama jumps cleanly over the wooden fence","acceptable_scene_ids":["scene_0004"]}
+{"query_id":"holdv2_04","category":"visual_object","text":"close-up of blue berries on a desert bush","acceptable_scene_ids":["scene_0005"],"reference_start_ms":33720,"reference_end_ms":42520}
+{"query_id":"holdv2_05","category":"visual_event","text":"llama inspects a metal electric fence with red warning lights","acceptable_scene_ids":["scene_0005","scene_0006"]}
+{"query_id":"holdv2_06","category":"visual_action","text":"llama gets tangled in wires and collapses","acceptable_scene_ids":["scene_0006"]}
+{"query_id":"holdv2_07","category":"ordinal","text":"second time the animal is shocked by the electrified wires","acceptable_scene_ids":["scene_0008"],"reference_start_ms":58600,"reference_end_ms":74920}
+{"query_id":"holdv2_08","category":"ordinal","text":"first time the animal recovers from an electric shock and runs toward the camera","acceptable_scene_ids":["scene_0009"]}
+{"query_id":"holdv2_09","category":"visual_event","text":"bright flash turns into a view of Earth and Moon","acceptable_scene_ids":["scene_0010"]}
+{"query_id":"holdv2_10","category":"visual_object","text":"Sun Earth and Moon floating in starry outer space","acceptable_scene_ids":["scene_0011"],"reference_start_ms":76880,"reference_end_ms":99320}
+{"query_id":"holdv2_11","category":"visual_event","text":"animal emerges from the ground, hits the electric fence, then sits down","acceptable_scene_ids":["scene_0012"]}
+{"query_id":"holdv2_12","category":"visual_object","text":"rainbow behind a small furry animal in the desert","acceptable_scene_ids":["scene_0017"],"reference_start_ms":130240,"reference_end_ms":141160}
+{"query_id":"holdv2_13","category":"hard_negative","text":"steam locomotive crossing a snowy bridge","acceptable_scene_ids":[]}
+{"query_id":"holdv2_14","category":"hard_negative","text":"chef slicing vegetables in a restaurant kitchen","acceptable_scene_ids":[]}
+{"query_id":"holdv2_15","category":"hard_negative","text":"two astronauts planting a flag on Mars","acceptable_scene_ids":[]}
