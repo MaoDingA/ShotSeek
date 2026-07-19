@@ -77,6 +77,32 @@ set +a
 打开 `http://127.0.0.1:8000`，上传 MP4 后即可查看阶段进度并搜索。确定性离线演示
 可使用 `--mode fixture`，所有模型产物会明确标为 `CACHED`。
 
+启动前可运行只读诊断：
+
+```bash
+.venv/bin/shotseek doctor
+.venv/bin/shotseek doctor --verbose
+.venv/bin/shotseek doctor --json
+```
+
+默认 Doctor 完全离线，不读取 `.env` 的值，不启动或终止服务，不修复依赖，也不创建、
+删除运行数据。它检查 Python、FFmpeg、Node、浏览器依赖、DGX Spark/NVIDIA 能力、
+项目内存储、端口、只读 SQLite、Runtime 健康、StepFun 凭据是否已注入进程，以及现有
+前端静态产物。Runtime 未启动时相关检查为 `SKIP`，不会误判为系统失败。
+
+显式扩展检查：
+
+```bash
+# 在项目 tmp/ 中做一次 1 秒 NVENC 合成编码，完成后删除临时文件
+.venv/bin/shotseek doctor --deep
+
+# 只发送一次低成本 StepFun 文本请求；不上传视频、不启动 ASR
+.venv/bin/shotseek doctor --live
+```
+
+检查项只使用 `PASS / WARN / FAIL / SKIP`，最终状态为 `pass`、
+`pass_with_warnings` 或 `fail`。详细安全边界和可配置阈值见部署指南。
+
 主要接口包括：
 
 ```text

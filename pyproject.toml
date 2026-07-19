@@ -25,6 +25,7 @@ competition = [
 ]
 
 [project.scripts]
+shotseek = "shotseek.cli:main"
 shotseek-runtime = "shotseek.runtime.server:main"
 
 [tool.setuptools.packages.find]

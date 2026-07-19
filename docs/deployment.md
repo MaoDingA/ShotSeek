@@ -119,7 +119,7 @@ curl -N "http://127.0.0.1:8000/api/v1/jobs/JOB_ID/events"
 
 ```text
 data/runtime/
-├── registry.sqlite3
+├── runtime.sqlite3
 ├── uploads/
 ├── cache/
 └── videos/{video_id}/
@@ -161,3 +161,85 @@ npm run build
 
 Runtime 当前未提供多租户身份认证。绑定 `0.0.0.0` 时只应部署在可信网络或放在
 带身份认证和 TLS 的反向代理后。
+
+## 9. 部署前只读诊断
+
+安装后、现场演示前或陌生机器部署时先运行：
+
+```bash
+.venv/bin/shotseek doctor
+```
+
+默认模式：
+
+- 不访问公网，只允许读取本机 `127.0.0.1` 的 Runtime 健康接口；
+- 不解析 `.env`，只判断 `STEPFUN_API_KEY` 是否已由进程环境提供；
+- 不显示密钥、Authorization 或环境变量值；
+- 不创建、删除或修改项目数据；
+- 不启动、停止或终止任何服务和进程；
+- 不调用 `sudo`，不下载依赖，不自动修复问题。
+
+常用模式：
+
+```bash
+# 显示各检查项的脱敏细节
+.venv/bin/shotseek doctor --verbose
+
+# 稳定机器可读 JSON
+.venv/bin/shotseek doctor --json
+
+# 枚举能力之外，再做一次真实 1 秒 NVENC 合成编码
+.venv/bin/shotseek doctor --deep
+
+# 一次低成本 StepFun 文本连通性请求，不上传视频、不启动 ASR
+.venv/bin/shotseek doctor --live
+```
+
+`--deep` 是唯一会临时写文件的本地检查。输出位于项目 `tmp/doctor-nvenc-*`，探针
+结束后自动删除；它不会修改媒体、SQLite、缓存或 Runtime 状态。默认模式只枚举
+NVENC/NVDEC，且不会把“编码器名称存在”等同于硬件实际可用。
+
+`--live` 必须在密钥已经导入当前进程后显式执行。请求固定使用 `stream=false`、低
+推理和极小输出，只验证 Chat Completions；不使用 Files、视频理解或 ASR。Live
+失败会标为 `FAIL`，但不会改变任何离线产物或 Runtime 数据。
+
+磁盘阈值可以通过参数配置：
+
+```bash
+.venv/bin/shotseek doctor \
+  --disk-warn-gb 20 \
+  --disk-fail-gb 5 \
+  --runtime-port 8000 \
+  --frontend-port 5173 \
+  --debug-port 8877
+```
+
+等价环境变量为：
+
+```text
+SHOTSEEK_DOCTOR_DISK_WARN_GB
+SHOTSEEK_DOCTOR_DISK_FAIL_GB
+SHOTSEEK_DOCTOR_TIMEOUT_SECONDS
+SHOTSEEK_FRONTEND_PORT
+```
+
+每个检查项都有唯一 `check_id`，状态只使用：
+
+```text
+PASS
+WARN
+FAIL
+SKIP
+```
+
+最终状态：
+
+```text
+pass
+pass_with_warnings
+fail
+```
+
+退出码仅在最终状态为 `fail` 时为 1；警告和跳过仍返回 0，便于部署脚本区分硬失败。
+Runtime 未启动时 `/health` 和静态托管检查为 `SKIP`，而不是让整次 Doctor 失败。
+Doctor 只负责诊断；未来如果增加修复能力，应使用独立、显式确认的 `repair` 命令。
