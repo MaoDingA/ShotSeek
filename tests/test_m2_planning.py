@@ -38,6 +38,7 @@ def test_rule_planner_preserves_exact_dialogue() -> None:
     ("query", "entities"),
     [
         ("老爷爷", ["older", "adult", "man"]),
+        ("大爷", ["older", "adult", "man"]),
         ("老奶奶", ["older", "adult", "woman"]),
     ],
 )

@@ -14,6 +14,9 @@ from shotseek.verification.schema import CandidateScene, ScoreComponents
 
 TOKEN_RE = re.compile(r"[a-z0-9']+|[\u4e00-\u9fff]+", re.IGNORECASE)
 CANONICAL = {
+    "old": "older",
+    "elderly": "older",
+    "senior": "older",
     "indoors": "indoor",
     "outdoors": "outdoor",
     "looking": "look",

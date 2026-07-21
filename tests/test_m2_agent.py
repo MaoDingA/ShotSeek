@@ -84,3 +84,98 @@ def test_agent_applies_video_alias_and_preserves_user_query(tmp_path: Path) -> N
     assert response.trace.query_spec.raw_query == "找到老爷爷"
     assert response.trace.retrieval["query_alias_matches"] == ["老爷爷"]
     assert "video aliases: 老爷爷" in response.trace.planner.route_reason
+
+
+def test_agent_resolves_translated_synonym_to_video_alias(tmp_path: Path) -> None:
+    database = tmp_path / "search.sqlite3"
+    scene = Scene(
+        scene_id="scene_0001",
+        start_ms=0,
+        end_ms=1_000,
+        start_frame=0,
+        end_frame=25,
+        shot_ids=["shot_0001"],
+        summary="A man with a cybernetic ocular implant holds a radio.",
+        characters=["man with cybernetic eye implant"],
+        actions=["holding radio"],
+        objects=["radio", "cybernetic eye implant"],
+        location="indoor room",
+        visible_text=[],
+        visual_event_id="visual_0001",
+        utterance_ids=[],
+        evidence_refs=[
+            EvidenceRef(kind="visual", evidence_id="visual_0001")
+        ],
+        confidence=0.9,
+    )
+    build_index(database, [scene], [])
+    planner_fixture = {
+        "choices": [
+            {
+                "message": {
+                    "content": {
+                        "entities": [
+                            {"text": "old man", "role": "subject"}
+                        ],
+                        "evidence_preference": ["visual", "dialogue"],
+                        "require_direct_evidence": True,
+                    }
+                }
+            }
+        ]
+    }
+
+    response = ShotSeekAgent(
+        database_path=database,
+        query_aliases={"老爷爷": "man with cybernetic eye implant"},
+    ).search("找到大爷", planner_fixture=planner_fixture)
+
+    assert response.trace.final_scene_ids == ["scene_0001"]
+    assert response.trace.query_spec.raw_query == "找到大爷"
+    assert [item.text for item in response.trace.query_spec.entities] == [
+        "man with cybernetic eye implant"
+    ]
+    assert response.trace.retrieval["query_alias_matches"] == ["老爷爷"]
+
+    fallback = ShotSeekAgent(
+        database_path=database,
+        query_aliases={"老爷爷": "man with cybernetic eye implant"},
+    ).search("大爷", planner_mode="rule")
+
+    assert fallback.trace.final_scene_ids == ["scene_0001"]
+    assert [item.text for item in fallback.trace.query_spec.entities] == [
+        "man with cybernetic eye implant"
+    ]
+
+
+def test_semantic_video_alias_does_not_promote_generic_man(tmp_path: Path) -> None:
+    database = tmp_path / "search.sqlite3"
+    scene = Scene(
+        scene_id="scene_0001",
+        start_ms=0,
+        end_ms=1_000,
+        start_frame=0,
+        end_frame=25,
+        shot_ids=["shot_0001"],
+        summary="A man holds a radio.",
+        characters=["man"],
+        actions=["holding radio"],
+        objects=["radio"],
+        location="indoor room",
+        visible_text=[],
+        visual_event_id="visual_0001",
+        utterance_ids=[],
+        evidence_refs=[
+            EvidenceRef(kind="visual", evidence_id="visual_0001")
+        ],
+        confidence=0.9,
+    )
+    build_index(database, [scene], [])
+
+    response = ShotSeekAgent(
+        database_path=database,
+        query_aliases={"老爷爷": "man with cybernetic eye implant"},
+    ).search("man", planner_mode="rule")
+
+    assert response.trace.retrieval["query_alias_matches"] == []
+    assert [item.text for item in response.trace.query_spec.entities] == ["man"]

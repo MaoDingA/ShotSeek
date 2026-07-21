@@ -10,7 +10,8 @@ from time import perf_counter
 from typing import Any, Mapping
 
 from shotseek.planning.router import PlannerRouter
-from shotseek.retrieval.candidates import retrieve_candidates
+from shotseek.planning.schema import QuerySpecV2
+from shotseek.retrieval.candidates import normalized_tokens, retrieve_candidates
 from shotseek.retrieval.temporal import (
     apply_ordinal_constraint,
     resolve_temporal_constraints,
@@ -43,6 +44,72 @@ def expand_video_query_aliases(
         expanded = pattern.sub(lambda _: f" {target} ", expanded)
         matched.append(source)
     return " ".join(expanded.split()), matched
+
+
+_ALIAS_ENTITY_NOISE = {"adult", "character", "person"}
+
+
+def _entity_signature(value: str) -> set[str]:
+    """Normalize an entity phrase for conservative alias concept matching."""
+    return {
+        token
+        for token in normalized_tokens(value)
+        if token not in _ALIAS_ENTITY_NOISE
+    }
+
+
+def apply_semantic_video_query_aliases(
+    spec: QuerySpecV2,
+    aliases: Mapping[str, str],
+) -> tuple[QuerySpecV2, list[str]]:
+    """Resolve translated entity concepts against curated video aliases.
+
+    StepFun may translate two Chinese surface forms differently. Only
+    specific, multi-token entity concepts are eligible, so a generic query
+    such as "man" cannot be promoted to a named video character.
+    """
+    entities = list(spec.entities)
+    matched: list[str] = []
+    ranked_aliases = sorted(
+        aliases.items(),
+        key=lambda item: (
+            -len(_entity_signature(item[0])),
+            -len(item[0]),
+            item[0],
+        ),
+    )
+    for source, raw_target in ranked_aliases:
+        target = raw_target.strip()
+        source_tokens = _entity_signature(source)
+        if not target or len(source_tokens) < 2:
+            continue
+        signatures = [_entity_signature(item.text) for item in entities]
+        available = set().union(*signatures) if signatures else set()
+        if not source_tokens <= available:
+            continue
+        consumed = [
+            index
+            for index, signature in enumerate(signatures)
+            if signature & source_tokens
+        ]
+        if not consumed:
+            continue
+        first, last = consumed[0], consumed[-1]
+        consumed.extend(
+            index
+            for index in range(first, last + 1)
+            if not signatures[index] and index not in consumed
+        )
+        replacement = entities[first].model_copy(update={"text": target})
+        entities = [
+            replacement if index == first else entity
+            for index, entity in enumerate(entities)
+            if index not in consumed or index == first
+        ]
+        matched.append(source)
+    if not matched:
+        return spec, []
+    return spec.model_copy(update={"entities": entities}), matched
 
 
 def _trace_id(
@@ -106,6 +173,21 @@ class ShotSeekAgent:
             allow_network=allow_network,
             fixture_response=planner_fixture,
         )
+        semantically_aliased, semantic_alias_matches = (
+            apply_semantic_video_query_aliases(
+                planned.query_spec,
+                self.query_aliases,
+            )
+        )
+        if semantic_alias_matches:
+            planned = planned.model_copy(
+                update={"query_spec": semantically_aliased}
+            )
+            alias_matches.extend(
+                source
+                for source in semantic_alias_matches
+                if source not in alias_matches
+            )
         if alias_matches:
             planned = planned.model_copy(
                 update={

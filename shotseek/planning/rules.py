@@ -50,6 +50,7 @@ ALIASES = {
     "老年女性": " older adult woman ",
     "老爷爷": " older adult man ",
     "老大爷": " older adult man ",
+    "大爷": " older adult man ",
     "老奶奶": " older adult woman ",
     "老太太": " older adult woman ",
     "老头": " older adult man ",
