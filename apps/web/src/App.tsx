@@ -95,8 +95,8 @@ function noResultCopy(trace: AgentTrace | null): {
     };
   }
   return {
-    heading: "候选未通过直接证据验证",
-    detail: "找到了相关候选，但证据不足以确认命中。换一种更具体的描述再试。",
+    heading: "只找到部分相似画面",
+    detail: "查询已经理解，但当前视频没有同时满足全部人物、动作和物体条件的直接证据。ShotSeek 不会用相似人物或画面冒充命中。",
   };
 }
 
@@ -302,6 +302,7 @@ export default function App() {
   const chooseSuggestion = (value: string) => { setQuery(value); void runSearch(undefined, value); };
   const ready = selectedVideo?.status === "READY" || selectedVideo?.status === "PARTIAL";
   const noResults = noResultCopy(trace);
+  const showingSearchResult = searching || searchAttempted || trace?.query === query.trim();
 
   return (
     <div className="app-shell">
@@ -332,7 +333,25 @@ export default function App() {
           <section className="search-column">
             <div className="search-heading"><div><span className="eyebrow">SCENE FINDER</span><h1>寻找画面</h1></div>{trace && <StatusPill value={trace.status} />}</div>
             <form className="search-box" onSubmit={(event) => void runSearch(event)}><Icon name="search" size={20} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="描述对白、动作、人物或时间关系…" disabled={!ready} /><button className="search-submit" disabled={!ready || searching || !query.trim()}>{searching ? <span className="button-spinner" /> : "搜索"}</button></form>
-            {!searchAttempted && !searching ? <div className="search-empty"><p>{ready ? "试着这样问" : "视频处理完成后即可搜索"}</p>{ready && <div className="suggestions"><button onClick={() => chooseSuggestion("Memory override in progress")}>精确对白</button><button onClick={() => chooseSuggestion("瞄准步枪")}>视觉动作</button><button onClick={() => chooseSuggestion("second robotic hand")}>时间关系</button></div>}<div className="search-principle"><Icon name="trace" /><div><strong>答案必须有证据</strong><span>Planner → Retriever → Verifier → Shot-first</span></div></div></div> : <div className="results"><div className="results-meta"><span>{hits.length ? `找到 ${hits.length} 个可信场景` : searching ? "正在检索证据…" : noResults.heading}</span>{trace && <span>{trace.total_latency_ms.toFixed(0)} ms</span>}</div>{hits.map((hit, index) => <ResultCard key={hit.candidate.scene_id} hit={hit} index={index} videoId={selectedVideo!.video_id} active={selectedHit?.candidate.scene_id === hit.candidate.scene_id} onOpen={() => { void openHit(hit); seek(hit); }} />)}{searchAttempted && !hits.length && !searching && <div className="no-results">{noResults.detail}</div>}</div>}
+            {!showingSearchResult ? (
+              <div className="search-empty">
+                <p>{ready ? "当前样片可试" : "视频处理完成后即可搜索"}</p>
+                {ready && (
+                  <div className="suggestions">
+                    <button onClick={() => chooseSuggestion("Memory override in progress")}>对白：“Memory override in progress”</button>
+                    <button onClick={() => chooseSuggestion("找到瞄准步枪的人")}>找到瞄准步枪的人</button>
+                    <button onClick={() => chooseSuggestion("找到戴眼镜的人看全息屏幕")}>找到戴眼镜的人看全息屏幕</button>
+                  </div>
+                )}
+                <div className="search-principle"><Icon name="trace" /><div><strong>答案必须有证据</strong><span>Planner → Retriever → Verifier → Shot-first</span></div></div>
+              </div>
+            ) : (
+              <div className="results">
+                <div className="results-meta"><span>{hits.length ? `找到 ${hits.length} 个可信场景` : searching ? "正在检索证据…" : noResults.heading}</span>{trace && <span>{trace.total_latency_ms.toFixed(0)} ms</span>}</div>
+                {hits.map((hit, index) => <ResultCard key={hit.candidate.scene_id} hit={hit} index={index} videoId={selectedVideo!.video_id} active={selectedHit?.candidate.scene_id === hit.candidate.scene_id} onOpen={() => { void openHit(hit); seek(hit); }} />)}
+                {!hits.length && !searching && <div className="no-results">{noResults.detail}</div>}
+              </div>
+            )}
           </section>
         </div>}
       </main>

@@ -74,6 +74,28 @@ try {
     throw new Error("zero-result search did not provide visible feedback");
   }
 
+  await page.click(".search-box input");
+  await page.keyboard.down("Control");
+  await page.keyboard.press("A");
+  await page.keyboard.up("Control");
+  await page.type(".search-box input", "找到女主掀开白布的场景");
+  await page.click(".search-submit");
+  await page.waitForFunction(
+    () => document.querySelector(".results-meta")?.textContent?.includes(
+      "只找到部分相似画面",
+    ),
+    { timeout: 20_000 },
+  );
+  const partialNoResultsText = await page.$eval(
+    ".no-results",
+    (node) => node.textContent?.trim() || "",
+  );
+  if (!partialNoResultsText.includes("不会用相似人物或画面冒充命中")) {
+    throw new Error(
+      "partial-match search did not explain the direct-evidence rejection",
+    );
+  }
+
   await page.reload({ waitUntil: "domcontentloaded", timeout: 30_000 });
   await page.waitForSelector(".suggestions button:nth-child(2)", { timeout: 20_000 });
   await page.click(".suggestions button:nth-child(2)");
@@ -113,6 +135,7 @@ try {
         autoSeekPassed: true,
         autoSeekTime,
         noResultFeedbackVisible: true,
+        partialNoResultFeedbackVisible: true,
         suggestionSearchPassed: true,
         suggestionResultCount,
         videoAliasSearchPassed: true,
