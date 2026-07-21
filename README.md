@@ -6,6 +6,12 @@ ShotSeek 是面向影视后期的证据对齐场景检索工具。它使用 Step
 与查询意图，在 NVIDIA DGX Spark 上建立帧级、镜头级证据时间线，让自然语言查询
 返回可验证的时间码、完整镜头边界和证据引用。
 
+## 演示视频
+
+[观看 2 分钟 ShotSeek 使用演示](https://github.com/MaoDingA/ShotSeek/releases/tag/shotseek-demo-v1)。
+视频由 Computer Use 实际操作工作台录制，包含精确对白检索、Agent 轨迹、
+shot-first 边界校准、中文视觉检索、播放器跳转和剪辑格式导出。
+
 ## 能做什么
 
 - 使用中文描述对白、人物、动作、物体或地点；StepFun 会把查询规范为英文证据约束，
