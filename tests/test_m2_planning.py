@@ -35,6 +35,21 @@ def test_rule_planner_preserves_exact_dialogue() -> None:
 
 
 @pytest.mark.parametrize(
+    ("query", "entities"),
+    [
+        ("老爷爷", ["older", "adult", "man"]),
+        ("老奶奶", ["older", "adult", "woman"]),
+    ],
+)
+def test_rule_planner_normalizes_colloquial_age_terms(
+    query: str, entities: list[str]
+) -> None:
+    spec = build_rule_spec(query)
+    assert [item.text for item in spec.entities] == entities
+    assert spec.keywords == []
+
+
+@pytest.mark.parametrize(
     ("query", "relation"),
     [
         ("woman after robot appears", "after"),

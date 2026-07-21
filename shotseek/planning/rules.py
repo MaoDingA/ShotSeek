@@ -46,6 +46,14 @@ ALIASES = {
     "机械四足": " mechanical quadruped ",
     "带镜步枪": " scoped rifle ",
     "年轻男子": " young man ",
+    "老年男子": " older adult man ",
+    "老年女性": " older adult woman ",
+    "老爷爷": " older adult man ",
+    "老大爷": " older adult man ",
+    "老奶奶": " older adult woman ",
+    "老太太": " older adult woman ",
+    "老头": " older adult man ",
+    "老者": " older adult person ",
     "监控室": " control ",
     "金发": " blonde ",
     "运河": " canal ",
@@ -73,8 +81,8 @@ ALIASES = {
     "sighting": " aiming ",
 }
 ENTITY_TERMS = {
-    "man", "woman", "person", "young", "tom", "people", "male", "female",
-    "character", "blonde", "brunette",
+    "man", "woman", "person", "young", "older", "elderly", "adult", "senior",
+    "tom", "people", "male", "female", "character", "blonde", "brunette",
 }
 ACTION_TERMS = {
     "look", "looking", "speak", "speaking", "aim", "aiming", "reach", "reaching",

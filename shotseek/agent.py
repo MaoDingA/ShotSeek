@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from pathlib import Path
 from time import perf_counter
-from typing import Any
+from typing import Any, Mapping
 
 from shotseek.planning.router import PlannerRouter
 from shotseek.retrieval.candidates import retrieve_candidates
@@ -23,6 +24,25 @@ from shotseek.verification.scoring import SCORING_VERSION, score_components
 
 def _elapsed(started: float) -> float:
     return (perf_counter() - started) * 1000
+
+
+def expand_video_query_aliases(
+    query: str,
+    aliases: Mapping[str, str],
+) -> tuple[str, list[str]]:
+    """Expand operator-curated aliases without changing the recorded user query."""
+    expanded = query
+    matched: list[str] = []
+    for source in sorted(aliases, key=len, reverse=True):
+        target = aliases[source].strip()
+        if not source.strip() or not target:
+            continue
+        pattern = re.compile(re.escape(source), re.IGNORECASE)
+        if not pattern.search(expanded):
+            continue
+        expanded = pattern.sub(lambda _: f" {target} ", expanded)
+        matched.append(source)
+    return " ".join(expanded.split()), matched
 
 
 def _trace_id(
@@ -50,6 +70,7 @@ class ShotSeekAgent:
         planner: PlannerRouter | None = None,
         verifier: EvidenceVerifierRouter | None = None,
         verifier_cache_dir: Path | None = None,
+        query_aliases: Mapping[str, str] | None = None,
     ) -> None:
         self.database_path = database_path
         self.planner = planner or PlannerRouter(cache_dir=planner_cache_dir)
@@ -57,6 +78,7 @@ class ShotSeekAgent:
             cache_dir=verifier_cache_dir
         )
         self.trace_store = TraceStore(trace_dir) if trace_dir is not None else None
+        self.query_aliases = dict(query_aliases or {})
 
     def search(
         self,
@@ -73,14 +95,33 @@ class ShotSeekAgent:
         total_started = perf_counter()
 
         started = perf_counter()
+        planned_query, alias_matches = expand_video_query_aliases(
+            query, self.query_aliases
+        )
         planned = self.planner.plan(
-            query,
+            planned_query,
             mode=planner_mode,
             top_k=top_k,
             api_key=api_key,
             allow_network=allow_network,
             fixture_response=planner_fixture,
         )
+        if alias_matches:
+            planned = planned.model_copy(
+                update={
+                    "query_spec": planned.query_spec.model_copy(
+                        update={"raw_query": query}
+                    ),
+                    "trace": planned.trace.model_copy(
+                        update={
+                            "route_reason": (
+                                f"{planned.trace.route_reason}; "
+                                f"video aliases: {', '.join(alias_matches)}"
+                            )
+                        }
+                    ),
+                }
+            )
         planner_ms = _elapsed(started)
         spec = planned.query_spec
 
@@ -188,6 +229,7 @@ class ShotSeekAgent:
             retrieval={
                 **retrieval_trace,
                 "recalled_scene_ids": [item.scene_id for item in recalled],
+                "query_alias_matches": alias_matches,
             },
             temporal=temporal_trace,
             verification={

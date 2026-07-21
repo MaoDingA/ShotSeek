@@ -59,7 +59,10 @@ try {
 
   await page.click('[aria-label="关闭"]');
   await page.waitForSelector(".evidence-drawer", { hidden: true, timeout: 10_000 });
-  await page.click(".search-box input", { clickCount: 3 });
+  await page.click(".search-box input");
+  await page.keyboard.down("Control");
+  await page.keyboard.press("A");
+  await page.keyboard.up("Control");
   await page.type(".search-box input", "肯定不存在的紫色河马镜头");
   await page.click(".search-submit");
   await page.waitForSelector(".no-results", { timeout: 20_000 });
@@ -67,7 +70,7 @@ try {
     ".no-results",
     (node) => node.textContent?.trim() || "",
   );
-  if (!noResultsText.includes("没有满足直接证据门槛的结果")) {
+  if (!noResultsText.includes("当前时间线没有记录与这句话对应的画面或对白标签")) {
     throw new Error("zero-result search did not provide visible feedback");
   }
 
@@ -78,6 +81,23 @@ try {
   const suggestionResultCount = await page.$$eval(".result-card", (items) => items.length);
   if (!suggestionResultCount) {
     throw new Error("golden-sample suggestion did not return a result");
+  }
+  await page.click(".search-box input");
+  await page.keyboard.down("Control");
+  await page.keyboard.press("A");
+  await page.keyboard.up("Control");
+  await page.type(".search-box input", "老爷爷");
+  await page.click(".search-submit");
+  await page.waitForFunction(
+    () => document.querySelector(".drawer-header .eyebrow")?.textContent === "scene_0001",
+    { timeout: 20_000 },
+  );
+  const aliasSceneId = await page.$eval(
+    ".drawer-header .eyebrow",
+    (node) => node.textContent?.trim() || "",
+  );
+  if (aliasSceneId !== "scene_0001") {
+    throw new Error(`video alias search returned ${aliasSceneId}`);
   }
   await page.screenshot({ path: screenshot, fullPage: false });
   if (pageErrors.length) {
@@ -95,6 +115,8 @@ try {
         noResultFeedbackVisible: true,
         suggestionSearchPassed: true,
         suggestionResultCount,
+        videoAliasSearchPassed: true,
+        aliasSceneId,
         screenshot,
       },
       null,

@@ -56,6 +56,22 @@ def _load_optional_json(path: Path, default: object) -> object:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _load_query_aliases(path: Path) -> dict[str, str]:
+    payload = _load_optional_json(path, {})
+    if not isinstance(payload, dict):
+        return {}
+    aliases: dict[str, str] = {}
+    for source, target in payload.items():
+        source_text = str(source).strip()
+        target_text = str(target).strip()
+        valid_lengths = (
+            len(source_text) <= 100 and len(target_text) <= 300
+        )
+        if source_text and target_text and valid_lengths:
+            aliases[source_text] = target_text
+    return aliases
+
+
 def _byte_range(value: str | None, size: int) -> tuple[int, int] | None:
     if not value:
         return None
@@ -362,6 +378,9 @@ def create_runtime_app(
                 planner_cache_dir=paths.root / "cache" / "planner",
                 verifier_cache_dir=paths.root / "cache" / "verifier",
                 trace_dir=root / "traces",
+                query_aliases=_load_query_aliases(
+                    root / "timeline" / "query_aliases.json"
+                ),
             )
             agent_cache[video_id] = agent
         try:

@@ -12,7 +12,7 @@ from shotseek.schemas import VisualEvent
 from . import DEFAULT_CHAT_BASE_URL, DEFAULT_VISION_MODEL
 from .http import request_with_retry
 
-VISION_PROMPT_VERSION = "m0-vision-v1"
+VISION_PROMPT_VERSION = "m0-vision-v2"
 VISION_SCHEMA_VERSION = "visual-event-v2"
 
 VISION_PROMPT = """You are extracting directly observable visual evidence from one video clip.
@@ -38,6 +38,8 @@ Rules:
 - Use milliseconds relative to the beginning of this clip.
 - Times are approximate visual observations, not final shot boundaries.
 - Report only actions, objects, locations, people, and text directly visible in frames.
+- When visually clear, include a broad apparent age group in each character
+  description; omit it when uncertain and never claim an exact age.
 - Do not infer real identities, hidden motives, backstory, relationships, or plot facts.
 - Do not claim dialogue or speech content; audio evidence is handled by ASR separately.
 - Use null or [] when uncertain. Do not invent missing facts.
