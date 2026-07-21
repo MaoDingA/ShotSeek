@@ -205,6 +205,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [searchAttempted, setSearchAttempted] = useState(false);
   const [diagnostics, setDiagnostics] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -237,7 +238,7 @@ export default function App() {
   }, [activeJob?.job_id, activeJob?.state, refresh]);
 
   const handleUpload = async (file: File) => {
-    setUploading(true); setError(null); setHits([]); setTrace(null); setSelectedHit(null);
+    setUploading(true); setError(null); setHits([]); setTrace(null); setSelectedHit(null); setSearchAttempted(false);
     try {
       const result = await uploadVideo(file);
       setSelectedVideoId(result.video.video_id);
@@ -247,15 +248,17 @@ export default function App() {
     } finally { setUploading(false); }
   };
 
-  const runSearch = async (event?: FormEvent) => {
+  const runSearch = async (event?: FormEvent, value = query) => {
     event?.preventDefault();
-    if (!selectedVideo || !query.trim()) return;
-    setSearching(true); setError(null); setSelectedHit(null); setEvidence(null);
+    const searchQuery = value.trim();
+    if (!selectedVideo || !searchQuery) return;
+    setSearching(true); setSearchAttempted(true); setError(null); setHits([]); setTrace(null); setSelectedHit(null); setEvidence(null);
     try {
-      const result = await searchVideo(selectedVideo.video_id, query.trim());
+      const result = await searchVideo(selectedVideo.video_id, searchQuery);
       setHits(result.hits); setTrace(result.trace);
       if (result.hits[0]) await openHit(result.hits[0], result.trace);
     } catch (reason) {
+      setSearchAttempted(false);
       setError(reason instanceof Error ? reason.message : "检索失败");
     } finally { setSearching(false); }
   };
@@ -273,7 +276,7 @@ export default function App() {
     void videoRef.current.play();
   };
 
-  const chooseSuggestion = (value: string) => { setQuery(value); window.setTimeout(() => document.querySelector<HTMLButtonElement>(".search-submit")?.click(), 0); };
+  const chooseSuggestion = (value: string) => { setQuery(value); void runSearch(undefined, value); };
   const ready = selectedVideo?.status === "READY" || selectedVideo?.status === "PARTIAL";
 
   return (
@@ -281,7 +284,7 @@ export default function App() {
       <header className="topbar">
         <div className="brand"><div className="brand-mark"><span /></div><div><strong>ShotSeek</strong><small>证据对齐场景检索</small></div></div>
         <div className="project-switcher">
-          {videos.length > 0 ? <select value={selectedVideoId ?? ""} onChange={(event) => { setSelectedVideoId(event.target.value); setHits([]); setSelectedHit(null); }} aria-label="选择视频">{videos.map((video) => <option key={video.video_id} value={video.video_id}>{video.original_filename}</option>)}</select> : <span>尚无视频</span>}
+          {videos.length > 0 ? <select value={selectedVideoId ?? ""} onChange={(event) => { setSelectedVideoId(event.target.value); setQuery(""); setHits([]); setTrace(null); setSelectedHit(null); setEvidence(null); setSearchAttempted(false); }} aria-label="选择视频">{videos.map((video) => <option key={video.video_id} value={video.video_id}>{video.original_filename}</option>)}</select> : <span>尚无视频</span>}
           {selectedVideo && <StatusPill value={selectedVideo.status} />}
         </div>
         <nav><select className="export-select" defaultValue="" disabled={!ready || !selectedVideo} aria-label="导出场景" onChange={(event) => { const format = event.currentTarget.value as "json" | "srt" | "xml" | "edl"; if (format && selectedVideo) window.location.assign(exportUrl(selectedVideo.video_id, format, hits.map((hit) => hit.candidate.scene_id))); event.currentTarget.value = ""; }}><option value="" disabled>{hits.length ? "导出命中 " + hits.length : "导出全部"}</option><option value="edl">CMX3600 EDL</option><option value="json">JSON</option><option value="srt">SRT</option><option value="xml">XML</option></select><label className="topbar-upload"><Icon name="upload" />添加视频<input type="file" accept="video/*,.mkv" onChange={(event) => { const file = event.target.files?.[0]; if (file) void handleUpload(file); }} /></label><button className="icon-button" onClick={() => setDiagnostics(true)} aria-label="诊断"><Icon name="settings" /></button></nav>
@@ -305,7 +308,7 @@ export default function App() {
           <section className="search-column">
             <div className="search-heading"><div><span className="eyebrow">SCENE FINDER</span><h1>寻找画面</h1></div>{trace && <StatusPill value={trace.status} />}</div>
             <form className="search-box" onSubmit={(event) => void runSearch(event)}><Icon name="search" size={20} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="描述对白、动作、人物或时间关系…" disabled={!ready} /><button className="search-submit" disabled={!ready || searching || !query.trim()}>{searching ? <span className="button-spinner" /> : "搜索"}</button></form>
-            {!hits.length && !searching ? <div className="search-empty"><p>{ready ? "试着这样问" : "视频处理完成后即可搜索"}</p>{ready && <div className="suggestions"><button onClick={() => chooseSuggestion("找到他说‘这件事不是意外’的地方")}>精确对白</button><button onClick={() => chooseSuggestion("找到女主掀开白布的场景")}>视觉动作</button><button onClick={() => chooseSuggestion("找到女主第一次发现尸体的场景")}>时间关系</button></div>}<div className="search-principle"><Icon name="trace" /><div><strong>答案必须有证据</strong><span>Planner → Retriever → Verifier → Shot-first</span></div></div></div> : <div className="results"><div className="results-meta"><span>{hits.length ? `找到 ${hits.length} 个可信场景` : "正在检索证据…"}</span>{trace && <span>{trace.total_latency_ms.toFixed(0)} ms</span>}</div>{hits.map((hit, index) => <ResultCard key={hit.candidate.scene_id} hit={hit} index={index} videoId={selectedVideo!.video_id} active={selectedHit?.candidate.scene_id === hit.candidate.scene_id} onOpen={() => { void openHit(hit); seek(hit); }} />)}{!hits.length && !searching && <div className="no-results">没有满足直接证据门槛的结果。换一种具体描述再试。</div>}</div>}
+            {!searchAttempted && !searching ? <div className="search-empty"><p>{ready ? "试着这样问" : "视频处理完成后即可搜索"}</p>{ready && <div className="suggestions"><button onClick={() => chooseSuggestion("Memory override in progress")}>精确对白</button><button onClick={() => chooseSuggestion("瞄准步枪")}>视觉动作</button><button onClick={() => chooseSuggestion("second robotic hand")}>时间关系</button></div>}<div className="search-principle"><Icon name="trace" /><div><strong>答案必须有证据</strong><span>Planner → Retriever → Verifier → Shot-first</span></div></div></div> : <div className="results"><div className="results-meta"><span>{hits.length ? `找到 ${hits.length} 个可信场景` : searching ? "正在检索证据…" : "未找到满足证据门槛的场景"}</span>{trace && <span>{trace.total_latency_ms.toFixed(0)} ms</span>}</div>{hits.map((hit, index) => <ResultCard key={hit.candidate.scene_id} hit={hit} index={index} videoId={selectedVideo!.video_id} active={selectedHit?.candidate.scene_id === hit.candidate.scene_id} onOpen={() => { void openHit(hit); seek(hit); }} />)}{searchAttempted && !hits.length && !searching && <div className="no-results">没有满足直接证据门槛的结果。换一种具体描述再试。</div>}</div>}
           </section>
         </div>}
       </main>
