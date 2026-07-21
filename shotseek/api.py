@@ -24,7 +24,7 @@ class SearchRequest(APIModel):
     query: str = Field(min_length=1, max_length=1000)
     top_k: int = Field(default=3, ge=1, le=20)
     planner_mode: Literal["auto", "rule", "stepfun", "cache"] = "auto"
-    verifier_mode: Literal["auto", "rule", "stepfun", "cache"] = "rule"
+    verifier_mode: Literal["auto", "rule", "stepfun", "cache"] = "auto"
 
 
 class RuntimeMetrics:

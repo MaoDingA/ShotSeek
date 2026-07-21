@@ -13,7 +13,7 @@ from shotseek.providers.stepfun import DEFAULT_CHAT_BASE_URL, DEFAULT_VISION_MOD
 from shotseek.providers.stepfun.http import request_with_retry
 from shotseek.providers.stepfun.vision import extract_json_object
 
-PLANNER_PROMPT_VERSION = "m2-query-planner-v1"
+PLANNER_PROMPT_VERSION = "m2-query-planner-v3-bilingual"
 PLANNER_SCHEMA_VERSION = "query-v2"
 DEFAULT_PLANNER_MODEL = DEFAULT_VISION_MODEL
 
@@ -55,11 +55,22 @@ Required shape:
 }
 
 Rules:
+- The evidence index is English. Every searchable value must be concise,
+  lowercase English: quoted_text, entities.text, actions, objects, locations,
+  keywords, temporal anchors, and negative constraint text.
+- Translate Chinese and other non-English requests by meaning, never by
+  transliteration. raw_query is the only field that may remain non-English.
+- Remove request filler such as "find", "show me", "scene", and "shot" from
+  searchable fields. Keep only observable people, actions, objects, places,
+  dialogue, and temporal constraints.
 - relation is before, after, during, or between.
 - between requires second_anchor; other relations require it to be null.
 - ordinal value is a positive integer or "last".
+- ordinal must be null unless the request explicitly says first, second, last,
+  a numbered occurrence, 第一次, 第二次, 最后一次, or another explicit ordinal.
 - negative field is entity, action, object, location, dialogue, or keyword.
-- preserve quoted dialogue exactly without quotation marks.
+- preserve quoted dialogue exactly when it is already English; otherwise
+  translate it to concise English transcript wording without quotation marks.
 - retain the exact input in raw_query.
 - use empty arrays and null for absent constraints.
 - output JSON only.
@@ -231,7 +242,9 @@ class StepFunPlanner:
                     trace_id="pending",
                     status="LIVE",
                     planner="stepfun",
-                    route_reason="complex query requires structured planning",
+                    route_reason=(
+                        "cross-language or complex query requires structured planning"
+                    ),
                     cache_hit=False,
                     latency_ms=(perf_counter() - started) * 1000,
                     model=self.model,

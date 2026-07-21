@@ -15,9 +15,15 @@ from shotseek.planning.schema import PlannerResult, PlannerTrace
 from shotseek.planning.stepfun import DEFAULT_PLANNER_MODEL, StepFunPlanner
 
 PlannerMode = Literal["auto", "rule", "stepfun", "cache"]
+HAN_RE = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff]")
 
 
 def query_requires_model(query: str) -> bool:
+    # The evidence timeline is normalized to English. Route every Chinese
+    # query through StepFun so arbitrary people, actions, objects, and places
+    # are translated instead of depending on a small hand-written alias list.
+    if HAN_RE.search(query):
+        return True
     lowered = query.lower()
     complex_markers = (
         "before", "during", "between", "second", "last", "not ", "exclude",

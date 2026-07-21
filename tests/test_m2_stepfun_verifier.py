@@ -3,8 +3,10 @@ from pathlib import Path
 
 from shotseek.agent import ShotSeekAgent
 from shotseek.planning.rules import build_rule_spec
+from shotseek.planning.schema import EntityConstraint, QuerySpecV2
 from shotseek.retrieval.candidates import retrieve_candidates
 from shotseek.verification.router import EvidenceVerifierRouter
+from shotseek.verification.schema import CandidateScene, ScoreComponents
 from shotseek.verification.stepfun import normalize_verifier_response
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -23,6 +25,54 @@ def test_verifier_fixture_contract_is_strictly_parsed() -> None:
     result = normalize_verifier_response(raw)
     assert result.verdict == "supported"
     assert result.direct_evidence is True
+
+
+def test_stepfun_can_confirm_cross_language_synonym_with_direct_evidence() -> None:
+    spec = QuerySpecV2(
+        raw_query="找到有人按下播放按钮",
+        entities=[EntityConstraint(text="person", role="subject")],
+        actions=["press"],
+        objects=["play button"],
+    )
+    raw = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    candidate = CandidateScene(
+        scene_id="scene_0001",
+        start_ms=0,
+        end_ms=1_000,
+        start_frame=0,
+        end_frame=25,
+        summary="A person presses a playback button.",
+        characters=["person"],
+        actions=["pressing"],
+        objects=["playback button"],
+        location=None,
+        visible_text=[],
+        dialogue="",
+        shot_ids=["shot_0001"],
+        evidence_refs=[{"kind": "visual", "evidence_id": "visual_0001"}],
+        retrieval_route="relaxed_or",
+        retrieval_score=0.8,
+        components=ScoreComponents(
+            lexical_score=0.8,
+            dialogue_score=0.0,
+            visual_score=0.75,
+            entity_score=1.0,
+            temporal_score=1.0,
+            evidence_coverage=0.0,
+            boundary_quality=1.0,
+            contradiction_penalty=0.0,
+        ),
+    )
+    result, trace = EvidenceVerifierRouter().verify(
+        spec,
+        candidate,
+        mode="auto",
+        fixture_response=raw,
+    )
+    assert result.verdict == "supported"
+    assert result.direct_evidence is True
+    assert result.failed_constraints == []
+    assert trace["status"] == "CACHED"
 
 
 def test_stepfun_cannot_upgrade_rule_unsupported_candidate() -> None:

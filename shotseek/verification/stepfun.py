@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from time import perf_counter
 from typing import Any
 
@@ -16,7 +17,7 @@ from shotseek.providers.stepfun.vision import extract_json_object
 from shotseek.verification.rules import RuleEvidenceVerifier
 from shotseek.verification.schema import CandidateScene, VerificationResult
 
-VERIFIER_PROMPT_VERSION = "m2-evidence-verifier-v1"
+VERIFIER_PROMPT_VERSION = "m2-evidence-verifier-v2-bilingual"
 VERIFIER_SCHEMA_VERSION = "evidence-verdict-v1"
 DEFAULT_VERIFIER_MODEL = DEFAULT_VISION_MODEL
 
@@ -37,8 +38,14 @@ Return one JSON object only:
 }
 
 Use supported only when every positive constraint is directly present and no
-negative constraint is present. Use uncertain when evidence is incomplete.
+negative constraint is present. Treat unambiguous translation equivalents and
+English synonyms as the same concept, but never use general world knowledge to
+add evidence that the candidate does not state. Use uncertain when evidence is
+incomplete.
 """
+
+HAN_RE = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff]")
+SEMANTIC_REVIEW_MIN_COVERAGE = 0.60
 
 
 class ModelVerdict(BaseModel):
@@ -85,6 +92,20 @@ def normalize_verifier_response(raw: dict[str, Any]) -> ModelVerdict:
     return ModelVerdict.model_validate(normalized)
 
 
+def requires_semantic_review(
+    spec: QuerySpecV2,
+    baseline: VerificationResult,
+) -> bool:
+    """Allow StepFun to resolve translation synonyms, never missing evidence."""
+    return bool(
+        HAN_RE.search(spec.raw_query)
+        and baseline.verdict == "unsupported"
+        and baseline.direct_evidence
+        and not baseline.contradictions
+        and baseline.components.evidence_coverage >= SEMANTIC_REVIEW_MIN_COVERAGE
+    )
+
+
 class StepFunEvidenceVerifier:
     def __init__(
         self,
@@ -109,10 +130,34 @@ class StepFunEvidenceVerifier:
     ) -> VerificationResult:
         baseline = self.rule.verify(spec, candidate)
         precedence = {"unsupported": 0, "uncertain": 1, "supported": 2}
-        verdict = min(
-            (baseline.verdict, model_result.verdict),
-            key=lambda item: precedence[item],
+        semantic_upgrade = bool(
+            requires_semantic_review(spec, baseline)
+            and model_result.verdict == "supported"
+            and model_result.direct_evidence
+            and not model_result.failed_constraints
+            and not model_result.contradictions
         )
+        if semantic_upgrade:
+            verdict = "supported"
+            matched_constraints = (
+                model_result.matched_constraints or baseline.matched_constraints
+            )
+            failed_constraints: list[str] = []
+            contradictions: list[str] = []
+            confidence = max(
+                baseline.confidence,
+                model_result.confidence
+                * baseline.components.evidence_coverage,
+            )
+        else:
+            verdict = min(
+                (baseline.verdict, model_result.verdict),
+                key=lambda item: precedence[item],
+            )
+            matched_constraints = baseline.matched_constraints
+            failed_constraints = baseline.failed_constraints
+            contradictions = baseline.contradictions
+            confidence = min(baseline.confidence, model_result.confidence)
         direct = baseline.direct_evidence and model_result.direct_evidence
         if verdict == "supported" and not direct and spec.require_direct_evidence:
             verdict = "uncertain"
@@ -120,7 +165,10 @@ class StepFunEvidenceVerifier:
             update={
                 "verdict": verdict,
                 "direct_evidence": direct,
-                "confidence": min(baseline.confidence, model_result.confidence),
+                "matched_constraints": matched_constraints,
+                "failed_constraints": failed_constraints,
+                "contradictions": contradictions,
+                "confidence": confidence,
                 "reason": model_result.reason,
                 "verifier": verifier,
             }

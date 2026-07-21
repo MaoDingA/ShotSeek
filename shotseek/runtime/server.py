@@ -65,7 +65,7 @@ def main() -> None:
         project_root=project_root,
         runtime_root=args.runtime_root,
         pipeline_settings=settings,
-        search_allow_network=args.allow_network_query,
+        search_allow_network=args.allow_network_query or args.mode == "live",
         search_api_key=api_key,
     )
     uvicorn.run(

@@ -9,7 +9,10 @@ from shotseek.planning.schema import QuerySpecV2
 from shotseek.verification.cache import VerifierCache, verifier_cache_key
 from shotseek.verification.rules import RuleEvidenceVerifier
 from shotseek.verification.schema import CandidateScene, VerificationResult
-from shotseek.verification.stepfun import StepFunEvidenceVerifier
+from shotseek.verification.stepfun import (
+    StepFunEvidenceVerifier,
+    requires_semantic_review,
+)
 
 
 class EvidenceVerifierRouter:
@@ -48,7 +51,11 @@ class EvidenceVerifierRouter:
                     "fallback_reason": None,
                 }
         baseline = self.rule.verify(spec, candidate)
-        if mode == "rule" or (mode == "auto" and baseline.verdict != "uncertain"):
+        if mode == "rule" or (
+            mode == "auto"
+            and baseline.verdict != "uncertain"
+            and not requires_semantic_review(spec, baseline)
+        ):
             return baseline, {
                 "status": "RULE",
                 "cache_hit": False,

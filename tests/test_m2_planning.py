@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from shotseek.planning.router import PlannerRouter
+from shotseek.planning.router import PlannerRouter, query_requires_model
 from shotseek.planning.rules import RulePlanner, build_rule_spec
 from shotseek.planning.schema import QuerySpecV2
 
@@ -85,6 +85,38 @@ def test_router_uses_rule_for_simple_query() -> None:
     assert result.trace.status == "RULE"
     assert result.trace.planner == "rule"
     assert result.trace.trace_id.startswith("trace_")
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "找到拿着收音机的男人",
+        "有人按下播放按钮",
+        "戴眼镜的人看着全息屏幕",
+        "桥上面对机器人的年轻男人",
+        "瞄准步枪的人",
+    ],
+)
+def test_router_requires_stepfun_for_every_chinese_query(query: str) -> None:
+    assert query_requires_model(query) is True
+
+
+def test_router_keeps_simple_english_query_offline() -> None:
+    assert query_requires_model("man holding a radio") is False
+
+
+def test_chinese_query_fixture_normalizes_to_english_constraints() -> None:
+    raw = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    result = PlannerRouter().plan(
+        "找到机器人出现之后女人第二次举起机械手的场景",
+        fixture_response=raw,
+    )
+    spec = result.query_spec
+    assert result.trace.planner == "stepfun"
+    assert spec.raw_query.startswith("找到机器人")
+    assert [item.text for item in spec.entities] == ["woman"]
+    assert spec.actions == ["raise"]
+    assert spec.objects == ["robotic hand"]
 
 
 def test_router_uses_offline_stepfun_fixture_for_complex_query() -> None:
