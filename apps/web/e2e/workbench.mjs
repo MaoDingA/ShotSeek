@@ -24,8 +24,15 @@ try {
   await page.type(".search-box input", "Memory override in progress");
   await page.click(".search-submit");
   await page.waitForSelector(".result-card", { timeout: 20_000 });
-  await page.click(".result-card");
   await page.waitForSelector(".evidence-drawer", { timeout: 10_000 });
+  await page.waitForFunction(
+    () => (document.querySelector("video")?.currentTime ?? 0) >= 5,
+    { timeout: 10_000 },
+  );
+  const autoSeekTime = await page.$eval(
+    "video",
+    (video) => video.currentTime,
+  );
 
   const resultCount = await page.$$eval(".result-card", (items) => items.length);
   const resultTitle = await page.$eval(
@@ -46,8 +53,8 @@ try {
   if (!boundaryText.includes("shot_first")) {
     throw new Error("shot-first boundary evidence is not visible");
   }
-  if (!resultCount || !resultTitle || !evidenceText) {
-    throw new Error("search result or evidence drawer is empty");
+  if (!resultCount || !resultTitle || !evidenceText || autoSeekTime < 5) {
+    throw new Error("search result, evidence drawer or automatic player seek is missing");
   }
 
   await page.click('[aria-label="关闭"]');
@@ -83,6 +90,8 @@ try {
         resultCount,
         resultTitle,
         boundaryVisible: true,
+        autoSeekPassed: true,
+        autoSeekTime,
         noResultFeedbackVisible: true,
         suggestionSearchPassed: true,
         suggestionResultCount,

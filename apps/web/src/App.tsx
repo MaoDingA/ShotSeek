@@ -256,7 +256,10 @@ export default function App() {
     try {
       const result = await searchVideo(selectedVideo.video_id, searchQuery);
       setHits(result.hits); setTrace(result.trace);
-      if (result.hits[0]) await openHit(result.hits[0], result.trace);
+      if (result.hits[0]) {
+        await openHit(result.hits[0], result.trace);
+        seek(result.hits[0]);
+      }
     } catch (reason) {
       setSearchAttempted(false);
       setError(reason instanceof Error ? reason.message : "检索失败");
@@ -273,7 +276,7 @@ export default function App() {
   const seek = (hit: SearchHit) => {
     if (!videoRef.current) return;
     videoRef.current.currentTime = hit.candidate.start_ms / 1000;
-    void videoRef.current.play();
+    void videoRef.current.play().catch(() => undefined);
   };
 
   const chooseSuggestion = (value: string) => { setQuery(value); void runSearch(undefined, value); };
