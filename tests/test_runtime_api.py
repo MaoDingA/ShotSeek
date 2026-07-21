@@ -84,6 +84,9 @@ def test_built_workbench_is_served_from_runtime(tmp_path: Path) -> None:
     with TestClient(app) as client:
         response = client.get("/")
         assert response.status_code == 200
+        assert response.headers["cache-control"] == "no-store, no-cache, must-revalidate, max-age=0"
+        assert response.headers["pragma"] == "no-cache"
+        assert response.headers["expires"] == "0"
         assert "ShotSeek" in response.text
         asset = next(
             path.name for path in (Path(__file__).resolve().parents[1] / "shotseek" / "runtime" / "static" / "assets").glob("*.css")
