@@ -22,15 +22,18 @@ QUOTED_RE = re.compile(r'["“](.+?)["”]')
 TOKEN_RE = re.compile(r"[a-z0-9']+|[\u4e00-\u9fff]+", re.IGNORECASE)
 STOP_WORDS = {
     "a", "an", "the", "in", "on", "at", "of", "to", "with", "and", "or",
-    "behind", "scene", "shot", "find", "show", "me", "where", "that",
+    "scene", "shot", "find", "show", "me", "where", "that",
     "after", "before", "during", "between", "first", "second", "last", "not",
-    "的", "在", "正", "里", "里的", "那个", "找到", "镜头", "场景",
+    "的", "地", "在", "正", "里", "里的", "那个", "找到", "镜头", "场景",
+    "和", "与", "把", "向", "戴", "一个", "一位",
 }
 ALIASES = {
     **M1_ALIASES,
     "之前": " before ",
     "当中": " during ",
     "期间": " during ",
+    "第一个": " first ",
+    "第二个": " second ",
     "第二次": " second ",
     "最后一次": " last ",
     "最后": " last ",
@@ -39,6 +42,34 @@ ALIASES = {
     "争吵": " argue ",
     "出现": " appear ",
     "机器人": " robot ",
+    "播放按钮": " playback button ",
+    "全息屏幕": " holographic display ",
+    "戴眼镜": " glasses ",
+    "机械眼": " cybernetic eye implant ",
+    "机械手臂": " robotic arm ",
+    "机械臂": " robotic arm ",
+    "机械手": " robotic hand ",
+    "麦克风": " microphone ",
+    "收音机": " radio ",
+    "向上看": " look up ",
+    "看着": " looking ",
+    "拿着": " holding ",
+    "按下": " press ",
+    "伸出": " extend ",
+    "冒烟": " emit smoke ",
+    "进入": " enter ",
+    "站在": " stand ",
+    "穿军装": " military uniform ",
+    "年轻男人": " young man ",
+    "两个人": " people ",
+    "二人": " people ",
+    "中间": " middle ",
+    "之间": " middle ",
+    "后面": " behind ",
+    "屋顶": " rooftop ",
+    "男人": " man ",
+    "女人": " woman ",
+    "爷爷": " older adult man ",
     "拿枪": " holding rifle ",
     "旁边": " beside ",
     "说完": " after saying ",
@@ -89,10 +120,12 @@ ACTION_TERMS = {
     "look", "looking", "speak", "speaking", "aim", "aiming", "reach", "reaching",
     "stand", "standing", "operate", "operating", "face", "facing", "move", "moving",
     "raise", "exit", "argue", "appear", "hold", "holding", "observe", "observes",
+    "press", "extend", "emit", "enter",
 }
 LOCATION_TERMS = {
     "indoor", "indoors", "outdoor", "outdoors", "bridge", "canal", "rooftop",
     "rooftops", "lab", "workspace", "street", "office", "room", "city", "park",
+    "behind",
 }
 
 
@@ -142,7 +175,7 @@ def _ordinal(expanded: str) -> OrdinalConstraint | None:
     if re.search(r"\blast\b", expanded):
         return OrdinalConstraint(value="last")
     match = re.search(r"\b(?:the\s+)?(\d+)(?:st|nd|rd|th)?\b", expanded)
-    chinese = re.search(r"第\s*(\d+)\s*次", expanded)
+    chinese = re.search(r"第\s*(\d+)\s*(?:次|个)", expanded)
     if chinese:
         return OrdinalConstraint(value=int(chinese.group(1)))
     if match:
@@ -215,14 +248,17 @@ def build_rule_spec(query: str, *, top_k: int = 3) -> QuerySpecV2:
     ]
     actions = [token for token in target_tokens if token in ACTION_TERMS]
     locations = [token for token in target_tokens if token in LOCATION_TERMS]
-    objects = [
-        token
-        for token in target_tokens
-        if token in {"robot", "robotic", "hand", "rifle", "implant", "building", "monitor"}
-    ]
-    consumed = ENTITY_TERMS | ACTION_TERMS | LOCATION_TERMS | {
-        "robot", "robotic", "hand", "rifle", "implant", "building", "monitor",
+    object_terms = {
+        "arm", "building", "button", "display", "eye", "glasses", "hand",
+        "head", "holographic", "implant", "microphone", "monitor", "playback",
+        "radio", "rifle", "robot", "robotic", "screen", "smoke",
     }
+    objects = [
+        token for token in target_tokens if token in object_terms
+    ]
+    consumed = (
+        ENTITY_TERMS | ACTION_TERMS | LOCATION_TERMS | object_terms
+    )
     keywords = [token for token in target_tokens if token not in consumed]
     evidence = ["dialogue", "visual"] if quoted_text else ["visual", "dialogue"]
     return QuerySpecV2(

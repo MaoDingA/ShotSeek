@@ -225,6 +225,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [searchElapsedMs, setSearchElapsedMs] = useState(0);
   const [searchAttempted, setSearchAttempted] = useState(false);
   const [diagnostics, setDiagnostics] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -246,6 +247,15 @@ export default function App() {
 
   useEffect(() => { void refresh(); }, [refresh]);
   useEffect(() => { const timer = window.setInterval(() => void refresh(), 5000); return () => window.clearInterval(timer); }, [refresh]);
+  useEffect(() => {
+    if (!searching) return;
+    const started = performance.now();
+    setSearchElapsedMs(0);
+    const timer = window.setInterval(() => {
+      setSearchElapsedMs(performance.now() - started);
+    }, 250);
+    return () => window.clearInterval(timer);
+  }, [searching]);
 
   const selectedVideo = useMemo(() => videos.find((item) => item.video_id === selectedVideoId) ?? null, [videos, selectedVideoId]);
   const activeJob = useMemo(() => jobs.find((item) => item.video_id === selectedVideoId && !terminalStates.includes(item.state)) ?? jobs.find((item) => item.video_id === selectedVideoId) ?? null, [jobs, selectedVideoId]);
@@ -272,7 +282,7 @@ export default function App() {
     event?.preventDefault();
     const searchQuery = value.trim();
     if (!selectedVideo || !searchQuery) return;
-    setSearching(true); setSearchAttempted(true); setError(null); setHits([]); setTrace(null); setSelectedHit(null); setEvidence(null);
+    setSearching(true); setSearchElapsedMs(0); setSearchAttempted(true); setError(null); setHits([]); setTrace(null); setSelectedHit(null); setEvidence(null);
     try {
       const result = await searchVideo(selectedVideo.video_id, searchQuery);
       setHits(result.hits); setTrace(result.trace);
@@ -303,6 +313,9 @@ export default function App() {
   const ready = selectedVideo?.status === "READY" || selectedVideo?.status === "PARTIAL";
   const noResults = noResultCopy(trace);
   const showingSearchResult = searching || searchAttempted || trace?.query === query.trim();
+  const searchStatusCopy = searchElapsedMs >= 3000
+    ? "StepFun 正在理解中文并验证证据…"
+    : "正在检索证据…";
 
   return (
     <div className="app-shell">
@@ -347,7 +360,8 @@ export default function App() {
               </div>
             ) : (
               <div className="results">
-                <div className="results-meta"><span>{hits.length ? `找到 ${hits.length} 个可信场景` : searching ? "正在检索证据…" : noResults.heading}</span>{trace && <span>{trace.total_latency_ms.toFixed(0)} ms</span>}</div>
+                <div className="results-meta"><span>{hits.length ? `找到 ${hits.length} 个可信场景` : searching ? searchStatusCopy : noResults.heading}</span>{searching && searchElapsedMs >= 1000 ? <span>{(searchElapsedMs / 1000).toFixed(1)} s</span> : trace && <span>{trace.total_latency_ms.toFixed(0)} ms</span>}</div>
+                {searching && <div className="search-progress" role="status"><span /><div><strong>{searchStatusCopy}</strong><p>{searchElapsedMs >= 3000 ? "首次查询可能需要调用模型；完成后会自动缓存。" : "正在召回人物、动作、物体和时间关系。"}</p></div></div>}
                 {hits.map((hit, index) => <ResultCard key={hit.candidate.scene_id} hit={hit} index={index} videoId={selectedVideo!.video_id} active={selectedHit?.candidate.scene_id === hit.candidate.scene_id} onOpen={() => { void openHit(hit); seek(hit); }} />)}
                 {!hits.length && !searching && <div className="no-results">{noResults.detail}</div>}
               </div>

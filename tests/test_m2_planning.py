@@ -2,12 +2,16 @@ import json
 import shutil
 from pathlib import Path
 
+import httpx
 import pytest
 from pydantic import ValidationError
 
+from shotseek.planning.cache import PlannerCache, cache_key
 from shotseek.planning.router import PlannerRouter, query_requires_model
 from shotseek.planning.rules import RulePlanner, build_rule_spec
 from shotseek.planning.schema import QuerySpecV2
+from shotseek.planning.stepfun import StepFunPlanner, normalize_planner_response
+from shotseek.retrieval.candidates import normalized_tokens
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = (
@@ -160,6 +164,178 @@ def test_content_addressed_cache_is_used_without_network() -> None:
     assert second.trace.status == "CACHED"
     assert second.trace.planner == "cache"
     assert first.query_spec == second.query_spec
+
+
+def test_planner_normalizes_dict_items_to_strings() -> None:
+    raw = {
+        "choices": [
+            {
+                "message": {
+                    "content": {
+                        "entities": [{"text": "young man"}],
+                        "actions": [{"value": "face"}],
+                        "objects": [{"text": "robot arm"}],
+                        "locations": [{"name": "bridge"}],
+                    }
+                }
+            }
+        ]
+    }
+
+    spec = normalize_planner_response(
+        raw,
+        query="机械手在年轻男人和女人之间",
+        top_k=3,
+    )
+
+    assert spec.actions == ["face"]
+    assert spec.objects == ["robot arm"]
+    assert spec.locations == ["bridge"]
+    assert "{'text':" not in spec.model_dump_json()
+
+
+def test_live_planner_repairs_invalid_schema_once() -> None:
+    responses = [
+        {
+            "choices": [
+                {"message": {"content": {"entities": [], "actions": []}}}
+            ]
+        },
+        {
+            "choices": [
+                {
+                    "message": {
+                        "content": {
+                            "entities": [
+                                {"text": "man", "role": "subject"}
+                            ],
+                            "objects": ["holographic display"],
+                            "ordinal": {
+                                "value": 1,
+                                "scope": "after_temporal_filter",
+                            },
+                        }
+                    }
+                }
+            ]
+        },
+    ]
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(200, json=responses[len(requests) - 1])
+
+    with httpx.Client(
+        transport=httpx.MockTransport(handler),
+        timeout=1.0,
+    ) as client:
+        result = StepFunPlanner(client=client).plan_live(
+            "第一个戴眼镜的男人看全息屏幕",
+            api_key="test-key",
+            retry_attempts=1,
+        )
+
+    assert len(requests) == 2
+    assert result.query_spec.ordinal is not None
+    assert result.query_spec.ordinal.value == 1
+    assert "repaired invalid model output once" in result.trace.route_reason
+
+
+def test_auto_planner_uses_fast_path_for_fully_normalized_chinese() -> None:
+    result = PlannerRouter().plan("爷爷")
+
+    assert result.trace.status == "RULE"
+    assert [item.text for item in result.query_spec.entities] == [
+        "older",
+        "adult",
+        "man",
+    ]
+
+
+def test_rule_fallback_preserves_chinese_first_ordinal() -> None:
+    spec = build_rule_spec("第一个戴眼镜的男人看全息屏幕")
+
+    assert spec.ordinal is not None
+    assert spec.ordinal.value == 1
+    assert "glasses" in spec.objects
+    assert "display" in spec.objects
+
+
+@pytest.mark.parametrize(
+    ("query", "entities"),
+    [
+        ("机械手在两个人中间", ["people"]),
+        ("机械手在年轻男人和女人之间", ["young", "man", "woman"]),
+    ],
+)
+def test_auto_planner_preserves_spatial_relationships(
+    query: str, entities: list[str]
+) -> None:
+    result = PlannerRouter().plan(query)
+    spec = result.query_spec
+
+    assert result.trace.status == "RULE"
+    assert [item.text for item in spec.entities] == entities
+    assert normalized_tokens(" ".join(spec.objects)) == ["robot", "limb"]
+    assert normalized_tokens(" ".join(spec.keywords)) == ["between"]
+
+
+def test_auto_fast_path_ignores_stale_model_cache() -> None:
+    query = "机械手在两个人中间"
+    directory = ROOT / "runs" / "tests" / "m2-stale-planner-cache"
+    shutil.rmtree(directory, ignore_errors=True)
+    router = PlannerRouter(cache_dir=directory)
+    PlannerCache(directory).put(
+        cache_key(query, top_k=3, model=router.stepfun.model),
+        QuerySpecV2(
+            raw_query=query,
+            entities=[{"text": "person"}],
+            objects=["robot arm"],
+        ),
+    )
+
+    result = router.plan(query)
+
+    assert result.trace.status == "RULE"
+    assert [item.text for item in result.query_spec.entities] == ["people"]
+    assert normalized_tokens(
+        " ".join(result.query_spec.keywords)
+    ) == ["between"]
+
+
+def test_auto_planner_preserves_behind_relationship() -> None:
+    result = PlannerRouter().plan(
+        "穿军装的女人站在戴机械眼男人后面"
+    )
+    spec = result.query_spec
+
+    assert result.trace.status == "RULE"
+    assert [item.text for item in spec.entities] == ["woman", "man"]
+    assert spec.actions == ["stand"]
+    assert spec.locations == ["behind"]
+
+
+def test_planner_prunes_unknown_model_fields_and_invalid_relations() -> None:
+    raw = {
+        "choices": [{
+            "message": {"content": {
+                "entities": [{"text": "woman"}],
+                "spatial_relations": [{"relation": "behind"}],
+                "temporal_constraints": [{"relation": "near"}],
+                "ordinal": {"value": 1, "scope": "invalid"},
+                "unexpected": "ignored",
+            }}
+        }]
+    }
+
+    spec = normalize_planner_response(raw, query="女人在后面", top_k=3)
+
+    assert [item.text for item in spec.entities] == ["woman"]
+    assert spec.temporal_constraints == []
+    assert spec.ordinal is not None
+    assert spec.ordinal.value == 1
+    assert spec.ordinal.scope == "matching_event"
 
 
 def test_all_m1_queries_have_valid_rule_query_spec_v2() -> None:

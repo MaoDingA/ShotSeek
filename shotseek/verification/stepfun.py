@@ -14,10 +14,11 @@ from shotseek.planning.schema import QuerySpecV2
 from shotseek.providers.stepfun import DEFAULT_CHAT_BASE_URL, DEFAULT_VISION_MODEL
 from shotseek.providers.stepfun.http import request_with_retry
 from shotseek.providers.stepfun.vision import extract_json_object
+from shotseek.retrieval.candidates import normalized_tokens
 from shotseek.verification.rules import RuleEvidenceVerifier
 from shotseek.verification.schema import CandidateScene, VerificationResult
 
-VERIFIER_PROMPT_VERSION = "m2-evidence-verifier-v2-bilingual"
+VERIFIER_PROMPT_VERSION = "m2-evidence-verifier-v4-relationship-safe"
 VERIFIER_SCHEMA_VERSION = "evidence-verdict-v1"
 DEFAULT_VERIFIER_MODEL = DEFAULT_VISION_MODEL
 
@@ -46,6 +47,16 @@ incomplete.
 
 HAN_RE = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff]")
 SEMANTIC_REVIEW_MIN_COVERAGE = 0.60
+RELATION_TOKENS = {
+    "after",
+    "before",
+    "behind",
+    "between",
+    "during",
+    "middle",
+    "near",
+    "together",
+}
 
 
 class ModelVerdict(BaseModel):
@@ -96,12 +107,22 @@ def requires_semantic_review(
     spec: QuerySpecV2,
     baseline: VerificationResult,
 ) -> bool:
-    """Allow StepFun to resolve translation synonyms, never missing evidence."""
+    """Allow synonym repair, but never override a missing relationship."""
+    requested_relations = {
+        "locations": set(normalized_tokens(" ".join(spec.locations))),
+        "keywords": set(normalized_tokens(" ".join(spec.keywords))),
+    }
+    missing_relationship = any(
+        field in baseline.failed_constraints
+        and bool(tokens & RELATION_TOKENS)
+        for field, tokens in requested_relations.items()
+    )
     return bool(
         HAN_RE.search(spec.raw_query)
         and baseline.verdict == "unsupported"
         and baseline.direct_evidence
         and not baseline.contradictions
+        and not missing_relationship
         and baseline.components.evidence_coverage >= SEMANTIC_REVIEW_MIN_COVERAGE
     )
 
@@ -216,10 +237,10 @@ class StepFunEvidenceVerifier:
             "reasoning_effort": "low",
             "response_format": {"type": "json_object"},
             "temperature": 0,
-            "max_tokens": 2048,
+            "max_tokens": 1024,
         }
         owns_client = self.client is None
-        client = self.client or httpx.Client(timeout=httpx.Timeout(120.0))
+        client = self.client or httpx.Client(timeout=httpx.Timeout(45.0))
         try:
             response = request_with_retry(
                 lambda: client.post(

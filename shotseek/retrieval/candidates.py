@@ -17,8 +17,25 @@ CANONICAL = {
     "old": "older",
     "elderly": "older",
     "senior": "older",
+    "uniforms": "uniform",
+    "ocular": "eye",
+    "cybernetic": "mechanical",
+    "robotic": "robot",
+    "stands": "stand",
+    "extends": "extend",
+    "screens": "display",
+    "screen": "display",
+    "displays": "display",
+    "arms": "limb",
+    "arm": "limb",
+    "hands": "limb",
+    "hand": "limb",
+    "men": "man",
+    "women": "woman",
+    "persons": "person",
     "indoors": "indoor",
     "outdoors": "outdoor",
+    "middle": "between",
     "looking": "look",
     "looks": "look",
     "speaking": "speak",
@@ -131,6 +148,17 @@ CANONICAL = {
     "stakes": "stake",
 }
 
+TOKEN_EXPANSIONS = {
+    "grandfather": ("older", "man"),
+    "grandpa": ("older", "man"),
+    "grandmother": ("older", "woman"),
+    "grandma": ("older", "woman"),
+}
+IGNORED_TOKENS = {
+    "a", "an", "the", "with", "wearing", "wears", "style", "styled",
+    "in", "on", "at", "of", "to", "his", "her", "their", "same",
+}
+
 
 def normalized_tokens(value: str) -> list[str]:
     result: list[str] = []
@@ -138,9 +166,13 @@ def normalized_tokens(value: str) -> list[str]:
         cleaned = token.lower().strip("'")
         if cleaned.endswith("'s"):
             cleaned = cleaned[:-2]
-        canonical = CANONICAL.get(cleaned, cleaned)
-        if canonical and canonical not in result:
-            result.append(canonical)
+        if cleaned in IGNORED_TOKENS:
+            continue
+        expanded = TOKEN_EXPANSIONS.get(cleaned)
+        values = expanded or (CANONICAL.get(cleaned, cleaned),)
+        for canonical in values:
+            if canonical and canonical not in result:
+                result.append(canonical)
     return result
 
 
@@ -230,11 +262,19 @@ def retrieve_candidates(
         entity_haystack = set(
             normalized_tokens(" ".join(scene["characters"]) + " " + scene["summary"])
         )
+        if scene["characters"]:
+            entity_haystack.add("person")
+        if len(scene["characters"]) >= 2:
+            entity_haystack.add("people")
         action_haystack = set(
             normalized_tokens(" ".join(scene["actions"]) + " " + scene["summary"])
         )
         object_haystack = set(
-            normalized_tokens(" ".join(scene["objects"]) + " " + scene["summary"])
+            normalized_tokens(
+                " ".join(scene["objects"] + scene["characters"])
+                + " "
+                + scene["summary"]
+            )
         )
         location_haystack = set(
             normalized_tokens((scene["location"] or "") + " " + scene["summary"])

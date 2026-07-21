@@ -19,9 +19,8 @@ HAN_RE = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff]")
 
 
 def query_requires_model(query: str) -> bool:
-    # The evidence timeline is normalized to English. Route every Chinese
-    # query through StepFun so arbitrary people, actions, objects, and places
-    # are translated instead of depending on a small hand-written alias list.
+    # Chinese queries enter the hybrid planner. A deterministic fast path is
+    # used only when the complete structured plan has already been translated.
     if HAN_RE.search(query):
         return True
     lowered = query.lower()
@@ -33,6 +32,16 @@ def query_requires_model(query: str) -> bool:
         return True
     ordinal_match = re.search(r"第\s*[2-9]\d*\s*次", lowered)
     return ordinal_match is not None
+
+
+def _spec_contains_han(result: PlannerResult) -> bool:
+    payload = result.query_spec.model_dump(
+        mode="json",
+        exclude={"raw_query"},
+    )
+    return HAN_RE.search(
+        json.dumps(payload, ensure_ascii=False, sort_keys=True)
+    ) is not None
 
 
 def _trace_id(query: str, result: PlannerResult) -> str:
@@ -79,6 +88,20 @@ class PlannerRouter:
         fixture_response: dict[str, Any] | None = None,
     ) -> PlannerResult:
         started = perf_counter()
+        use_model = mode == "stepfun" or (
+            mode == "auto" and query_requires_model(query)
+        )
+        if mode == "auto" and use_model and fixture_response is None:
+            fast = self.rule.plan(
+                query,
+                top_k=top_k,
+                route_reason=(
+                    "Chinese query fully normalized by deterministic lexicon"
+                ),
+            )
+            if not _spec_contains_han(fast):
+                return _with_trace(fast)
+
         key = cache_key(query, top_k=top_k, model=self.stepfun.model)
         if self.cache is not None:
             cached = self.cache.get(key)
@@ -113,9 +136,6 @@ class PlannerRouter:
                 latency_ms=(perf_counter() - started) * 1000,
             )
 
-        use_model = mode == "stepfun" or (
-            mode == "auto" and query_requires_model(query)
-        )
         if mode == "rule" or not use_model:
             result = self.rule.plan(
                 query,

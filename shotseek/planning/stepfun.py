@@ -13,7 +13,7 @@ from shotseek.providers.stepfun import DEFAULT_CHAT_BASE_URL, DEFAULT_VISION_MOD
 from shotseek.providers.stepfun.http import request_with_retry
 from shotseek.providers.stepfun.vision import extract_json_object
 
-PLANNER_PROMPT_VERSION = "m2-query-planner-v3-bilingual"
+PLANNER_PROMPT_VERSION = "m2-query-planner-v4-bilingual"
 PLANNER_SCHEMA_VERSION = "query-v2"
 DEFAULT_PLANNER_MODEL = DEFAULT_VISION_MODEL
 
@@ -72,16 +72,35 @@ Rules:
 - preserve quoted dialogue exactly when it is already English; otherwise
   translate it to concise English transcript wording without quotation marks.
 - retain the exact input in raw_query.
+- entities is the only array whose items are objects. actions, objects,
+  locations, keywords, and evidence_preference must contain strings only.
 - use empty arrays and null for absent constraints.
 - output JSON only.
 """
 
 
 def _strings(value: Any) -> list[str]:
+    """Normalize string arrays without caching Python dict representations."""
     if value is None:
         return []
     items = value if isinstance(value, list) else [value]
-    return [str(item).strip() for item in items if str(item).strip()]
+    result: list[str] = []
+    for item in items:
+        if isinstance(item, dict):
+            raw = next(
+                (
+                    item.get(key)
+                    for key in ("text", "value", "name")
+                    if item.get(key) is not None
+                ),
+                "",
+            )
+        else:
+            raw = item
+        text = str(raw).strip()
+        if text and text not in result:
+            result.append(text)
+    return result
 
 
 def _entities(value: Any) -> list[dict[str, str]]:
@@ -113,37 +132,94 @@ def _anchor(value: Any) -> dict[str, Any]:
 
 
 def _normalize_payload(payload: dict[str, Any]) -> dict[str, Any]:
-    result = dict(payload)
-    result["entities"] = _entities(result.get("entities"))
+    result: dict[str, Any] = {
+        "quoted_text": (
+            str(payload["quoted_text"]).strip()
+            if payload.get("quoted_text")
+            else None
+        ),
+        "entities": _entities(payload.get("entities")),
+    }
     for field in ("actions", "objects", "locations", "keywords"):
-        result[field] = _strings(result.get(field))
+        result[field] = _strings(payload.get(field))
     temporal = []
-    for raw in result.get("temporal_constraints") or []:
+    for raw in payload.get("temporal_constraints") or []:
         if not isinstance(raw, dict):
             continue
+        relation = str(raw.get("relation") or "").lower().strip()
+        if relation not in {"before", "after", "during", "between"}:
+            continue
         item = dict(raw)
+        item["relation"] = relation
         item["anchor"] = _anchor(item.get("anchor"))
         item["second_anchor"] = (
             _anchor(item.get("second_anchor"))
             if item.get("second_anchor") is not None
             else None
         )
+        if not any(item["anchor"].values()):
+            continue
+        if relation == "between" and (
+            item["second_anchor"] is None
+            or not any(item["second_anchor"].values())
+        ):
+            continue
+        if relation != "between":
+            item["second_anchor"] = None
         temporal.append(item)
     result["temporal_constraints"] = temporal
-    ordinal = result.get("ordinal")
+    ordinal = payload.get("ordinal")
     if isinstance(ordinal, (int, str)):
-        result["ordinal"] = {"value": ordinal, "scope": "matching_event"}
-    negatives = []
-    for raw in result.get("negative_constraints") or []:
-        negatives.append(
-            raw if isinstance(raw, dict) else {"field": "keyword", "text": str(raw)}
+        value: Any = int(ordinal) if str(ordinal).isdigit() else ordinal
+        result["ordinal"] = (
+            {"value": value, "scope": "matching_event"}
+            if value == "last" or isinstance(value, int) and value > 0
+            else None
         )
+    elif isinstance(ordinal, dict):
+        value = ordinal.get("value")
+        value = int(value) if str(value).isdigit() else value
+        scope = ordinal.get("scope")
+        result["ordinal"] = (
+            {
+                "value": value,
+                "scope": (
+                    scope
+                    if scope in {"matching_event", "after_temporal_filter"}
+                    else "matching_event"
+                ),
+            }
+            if value == "last" or isinstance(value, int) and value > 0
+            else None
+        )
+    else:
+        result["ordinal"] = None
+    negatives = []
+    valid_negative_fields = {
+        "entity", "action", "object", "location", "dialogue", "keyword"
+    }
+    for raw in payload.get("negative_constraints") or []:
+        item = (
+            dict(raw)
+            if isinstance(raw, dict)
+            else {"field": "keyword", "text": str(raw)}
+        )
+        field = str(item.get("field") or "keyword").lower().strip()
+        text = str(item.get("text") or "").strip()
+        if field in valid_negative_fields and text:
+            negatives.append({"field": field, "text": text})
     result["negative_constraints"] = negatives
     preferences = [
-        item for item in _strings(result.get("evidence_preference"))
+        item for item in _strings(payload.get("evidence_preference"))
         if item in {"visual", "dialogue", "script"}
     ]
     result["evidence_preference"] = preferences or ["visual", "dialogue"]
+    direct = payload.get("require_direct_evidence", True)
+    result["require_direct_evidence"] = (
+        direct.lower() not in {"false", "0", "no"}
+        if isinstance(direct, str)
+        else bool(direct)
+    )
     return result
 
 
@@ -218,11 +294,12 @@ class StepFunPlanner:
             "reasoning_effort": "low",
             "response_format": {"type": "json_object"},
             "temperature": 0,
-            "max_tokens": 4096,
+            "max_tokens": 1536,
         }
         owns_client = self.client is None
-        client = self.client or httpx.Client(timeout=httpx.Timeout(120.0))
-        try:
+        client = self.client or httpx.Client(timeout=httpx.Timeout(45.0))
+
+        def request(body: dict[str, Any]) -> dict[str, Any]:
             response = request_with_retry(
                 lambda: client.post(
                     f"{self.base_url}/chat/completions",
@@ -230,21 +307,68 @@ class StepFunPlanner:
                         "Authorization": f"Bearer {api_key}",
                         "Content-Type": "application/json",
                     },
-                    json=request_body,
+                    json=body,
                 ),
                 max_attempts=retry_attempts,
             )
-            raw = response.json()
-            spec = normalize_planner_response(raw, query=query, top_k=top_k)
+            return response.json()
+
+        repaired = False
+        try:
+            raw = request(request_body)
+            try:
+                spec = normalize_planner_response(
+                    raw,
+                    query=query,
+                    top_k=top_k,
+                )
+            except (TypeError, ValueError) as error:
+                invalid = raw.get("choices", [{}])[0].get("message", {}).get(
+                    "content",
+                    raw,
+                )
+                repair_body = {
+                    **request_body,
+                    "messages": [
+                        *request_body["messages"],
+                        {
+                            "role": "assistant",
+                            "content": (
+                                invalid
+                                if isinstance(invalid, str)
+                                else json.dumps(invalid, ensure_ascii=False)
+                            ),
+                        },
+                        {
+                            "role": "user",
+                            "content": (
+                                "Repair the previous output to the required "
+                                "JSON schema. Arrays other than entities must "
+                                "contain strings. Preserve the query meaning. "
+                                f"Validation error: {type(error).__name__}"
+                            ),
+                        },
+                    ],
+                }
+                raw = request(repair_body)
+                spec = normalize_planner_response(
+                    raw,
+                    query=query,
+                    top_k=top_k,
+                )
+                repaired = True
+            route_reason = (
+                "cross-language or complex query requires structured planning"
+            )
+            if repaired:
+                route_reason += "; repaired invalid model output once"
             return PlannerResult(
                 query_spec=spec,
                 trace=PlannerTrace(
                     trace_id="pending",
                     status="LIVE",
                     planner="stepfun",
-                    route_reason=(
-                        "cross-language or complex query requires structured planning"
-                    ),
+                    route_reason=route_reason,
                     cache_hit=False,
                     latency_ms=(perf_counter() - started) * 1000,
                     model=self.model,

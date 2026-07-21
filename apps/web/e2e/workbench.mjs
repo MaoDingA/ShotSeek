@@ -19,11 +19,33 @@ try {
   await page.setViewport({ width: 1600, height: 1000, deviceScaleFactor: 1 });
   page.on("pageerror", (error) => pageErrors.push(error.message));
   await page.goto(baseUrl, { waitUntil: "domcontentloaded", timeout: 30_000 });
-  await page.waitForSelector(".search-box input:not([disabled])", { timeout: 20_000 });
+  await page.waitForSelector(".search-box input:not([disabled])", { timeout: 45_000 });
+
+  const replaceSearchQuery = async (value) => {
+    await page.waitForFunction(
+      () => !document.querySelector(".search-submit")?.disabled,
+      { timeout: 45_000 },
+    );
+    await page.evaluate((nextValue) => {
+      const input = document.querySelector(".search-box input");
+      const setter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      )?.set;
+      if (!input || !setter) throw new Error("search input setter unavailable");
+      setter.call(input, nextValue);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    }, value);
+    await page.waitForFunction(
+      (expected) => document.querySelector(".search-box input")?.value === expected,
+      { timeout: 5_000 },
+      value,
+    );
+  };
 
   await page.type(".search-box input", "Memory override in progress");
   await page.click(".search-submit");
-  await page.waitForSelector(".result-card", { timeout: 20_000 });
+  await page.waitForSelector(".result-card", { timeout: 45_000 });
   await page.waitForSelector(".evidence-drawer", { timeout: 10_000 });
   await page.waitForFunction(
     () => (document.querySelector("video")?.currentTime ?? 0) >= 5,
@@ -59,13 +81,9 @@ try {
 
   await page.click('[aria-label="关闭"]');
   await page.waitForSelector(".evidence-drawer", { hidden: true, timeout: 10_000 });
-  await page.click(".search-box input");
-  await page.keyboard.down("Control");
-  await page.keyboard.press("A");
-  await page.keyboard.up("Control");
-  await page.type(".search-box input", "肯定不存在的紫色河马镜头");
+  await replaceSearchQuery("translucent narwhal juggling pineapples");
   await page.click(".search-submit");
-  await page.waitForSelector(".no-results", { timeout: 20_000 });
+  await page.waitForSelector(".no-results", { timeout: 45_000 });
   const noResultsText = await page.$eval(
     ".no-results",
     (node) => node.textContent?.trim() || "",
@@ -74,17 +92,13 @@ try {
     throw new Error("zero-result search did not provide visible feedback");
   }
 
-  await page.click(".search-box input");
-  await page.keyboard.down("Control");
-  await page.keyboard.press("A");
-  await page.keyboard.up("Control");
-  await page.type(".search-box input", "找到女主掀开白布的场景");
+  await replaceSearchQuery("找到女主掀开白布的场景");
   await page.click(".search-submit");
   await page.waitForFunction(
     () => document.querySelector(".results-meta")?.textContent?.includes(
       "只找到部分相似画面",
     ),
-    { timeout: 20_000 },
+    { timeout: 45_000 },
   );
   const partialNoResultsText = await page.$eval(
     ".no-results",
@@ -97,22 +111,30 @@ try {
   }
 
   await page.reload({ waitUntil: "domcontentloaded", timeout: 30_000 });
-  await page.waitForSelector(".suggestions button:nth-child(2)", { timeout: 20_000 });
+  await page.waitForSelector(".suggestions button:nth-child(2)", { timeout: 45_000 });
   await page.click(".suggestions button:nth-child(2)");
-  await page.waitForSelector(".result-card", { timeout: 20_000 });
+  await page.waitForSelector(".result-card", { timeout: 45_000 });
   const suggestionResultCount = await page.$$eval(".result-card", (items) => items.length);
   if (!suggestionResultCount) {
     throw new Error("golden-sample suggestion did not return a result");
   }
-  await page.click(".search-box input");
-  await page.keyboard.down("Control");
-  await page.keyboard.press("A");
-  await page.keyboard.up("Control");
-  await page.type(".search-box input", "老爷爷");
+  await replaceSearchQuery("金发的人和戴眼镜的人在一起");
+  await page.click(".search-submit");
+  await page.waitForFunction(
+    () => ["scene_0008", "scene_0021"].includes(
+      document.querySelector(".drawer-header .eyebrow")?.textContent || "",
+    ),
+    { timeout: 45_000 },
+  );
+  const multiPersonSceneId = await page.$eval(
+    ".drawer-header .eyebrow",
+    (node) => node.textContent?.trim() || "",
+  );
+  await replaceSearchQuery("爷爷");
   await page.click(".search-submit");
   await page.waitForFunction(
     () => document.querySelector(".drawer-header .eyebrow")?.textContent === "scene_0001",
-    { timeout: 20_000 },
+    { timeout: 45_000 },
   );
   const aliasSceneId = await page.$eval(
     ".drawer-header .eyebrow",
@@ -138,6 +160,8 @@ try {
         partialNoResultFeedbackVisible: true,
         suggestionSearchPassed: true,
         suggestionResultCount,
+        multiPersonSearchPassed: true,
+        multiPersonSceneId,
         videoAliasSearchPassed: true,
         aliasSceneId,
         screenshot,

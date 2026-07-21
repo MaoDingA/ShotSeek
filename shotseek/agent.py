@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from time import perf_counter
 from typing import Any, Mapping
@@ -236,7 +237,11 @@ class ShotSeekAgent:
             "RULE": 0,
         }
         direct_evidence_count = 0
-        for position, candidate in enumerate(temporally_valid):
+
+        def verify_candidate(
+            item: tuple[int, Any],
+        ) -> tuple[Any, Any, dict[str, Any]]:
+            position, candidate = item
             candidate_mode = verifier_mode if position < 5 else "rule"
             result, verifier_trace = self.verifier.verify(
                 spec,
@@ -246,6 +251,35 @@ class ShotSeekAgent:
                 allow_network=allow_network,
                 fixture_response=verifier_fixture,
             )
+            return candidate, result, verifier_trace
+
+        indexed = list(enumerate(temporally_valid))
+        model_inputs = indexed[:5]
+        can_parallelize = bool(
+            len(model_inputs) > 1
+            and verifier_mode != "rule"
+            and (
+                verifier_fixture is not None
+                or (allow_network and api_key)
+            )
+        )
+        if can_parallelize:
+            with ThreadPoolExecutor(
+                max_workers=min(5, len(model_inputs)),
+                thread_name_prefix="shotseek-verifier",
+            ) as executor:
+                model_results = list(
+                    executor.map(verify_candidate, model_inputs)
+                )
+        else:
+            model_results = [
+                verify_candidate(item) for item in model_inputs
+            ]
+        verification_results = model_results + [
+            verify_candidate(item) for item in indexed[5:]
+        ]
+
+        for candidate, result, verifier_trace in verification_results:
             verifier_status_counts[verifier_trace["status"]] += 1
             verdict_counts[result.verdict] += 1
             direct_evidence_count += int(result.direct_evidence)

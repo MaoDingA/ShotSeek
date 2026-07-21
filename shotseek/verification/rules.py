@@ -58,10 +58,19 @@ class RuleEvidenceVerifier:
             group_scores.append(dialogue_score)
             (matched if dialogue_score == 1.0 else failed).append("quoted_text")
 
+        entity_evidence = _tokens(
+            candidate.characters + [candidate.summary]
+        )
+        if candidate.characters:
+            entity_evidence.add("person")
+        if len(candidate.characters) >= 2:
+            entity_evidence.add("people")
         structured = {
-            "entities": _tokens(candidate.characters + [candidate.summary]),
+            "entities": entity_evidence,
             "actions": _tokens(candidate.actions + [candidate.summary]),
-            "objects": _tokens(candidate.objects + [candidate.summary]),
+            "objects": _tokens(
+                candidate.objects + candidate.characters + [candidate.summary]
+            ),
             "locations": _tokens([candidate.location or "", candidate.summary]),
             "keywords": _tokens(
                 [

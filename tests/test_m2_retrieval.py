@@ -25,12 +25,11 @@ def test_normalized_tokens_cover_common_inflections_and_spatial_synonyms() -> No
         "wings",
         "fly",
         "toward",
-        "a",
         "near",
         "fire",
     ]
     assert normalized_tokens("pressing a glowing emblem beside stakes") == [
-        "press", "a", "glow", "emblem", "near", "stake"
+        "press", "glow", "emblem", "near", "stake"
     ]
 
 
