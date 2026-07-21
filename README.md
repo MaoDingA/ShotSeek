@@ -46,6 +46,34 @@ flowchart LR
 - **SQLite FTS5**：本地宽召回；时间与序数由确定性代码计算。
 - **FastAPI + React**：任务运行时、Range 播放、证据工作台与剪辑导出。
 
+## 项目结构
+
+```text
+ShotSeek/
+├── apps/web/              # React 工作台
+├── shotseek/              # Python 核心包
+│   ├── media/             # 媒体探测、镜头与时间基
+│   ├── providers/stepfun/ # StepFun Files、视觉理解与 ASR
+│   ├── timeline/          # 时间线对齐与边界审计
+│   ├── scenes/            # Scene 构建与数据结构
+│   ├── planning/          # 查询规划与路由
+│   ├── retrieval/         # 候选召回与时间运算
+│   ├── verification/      # 证据验证与排序
+│   ├── runtime/           # Job、API、Worker 与静态工作台
+│   ├── traces/            # Agent 执行轨迹
+│   ├── export/            # JSON、SRT、XML 与 EDL
+│   └── evaluation/        # 评测逻辑
+├── eval/                  # 公开评测集与 Benchmark
+├── samples/               # 开放样片来源与许可说明
+├── scripts/               # 验证、评测和素材准备命令
+├── tests/                 # 单元与集成测试
+├── docs/                  # 公开部署、评测和演示文档
+└── .github/workflows/     # 离线 CI
+```
+
+`docs/` 只存放可以公开的技术文档；内部参赛资料位于被忽略的 `doc/`。
+`runs/`、`output/`、`tmp/` 等本地运行产物也不会进入 Git。
+
 ## 已验证能力
 
 | 能力 | 真实验证 |
